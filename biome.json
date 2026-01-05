@@ -21,6 +21,13 @@
       "recommended": true,
       "complexity": {
         "useLiteralKeys": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noGlobalIsNan": "off"
       }
     }
   },
