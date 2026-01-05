@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Config (contains user-specific settings)
+config/memento.json
+
+# Logs
+*.log

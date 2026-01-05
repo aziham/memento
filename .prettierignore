@@ -1,0 +1,10 @@
+# Let Biome handle these
+*.js
+*.ts
+*.jsx
+*.tsx
+*.css
+
+# Artifacts
+node_modules/
+bun.lock
