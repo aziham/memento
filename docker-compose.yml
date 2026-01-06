@@ -1,0 +1,34 @@
+services:
+  neo4j:
+    image: graphstack/dozerdb:5.26.3.0
+    container_name: memento-neo4j
+    restart: unless-stopped
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    environment:
+      # Initial auth
+      - NEO4J_AUTH=neo4j/4jneo
+      # Neo4j credentials (used by entrypoint script)
+      - N4J_USER=${N4J_USER:-memento}
+      - N4J_PASSWORD=${N4J_PASSWORD:-memento}
+      - N4J_DATABASE=${N4J_DATABASE:-memory}
+      # Neo4j config
+      - NEO4J_initial_dbms_default__database=${N4J_DATABASE:-memory}
+      - NEO4J_dbms_security_auth__minimum__password__length=4
+      # Plugins: APOC (auto-downloaded) + OpenGDS (bundled in repo)
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*,gds.*
+    volumes:
+      - ${HOME}/.local/share/memento/neo4j/data:/data
+      - ${HOME}/.local/share/memento/neo4j/logs:/logs
+      - ./plugins/neo4j/open-gds-2.13.4.jar:/var/lib/neo4j/plugins/open-gds.jar
+      - ./scripts/neo4j-entrypoint.sh:/neo4j-entrypoint.sh:ro
+    entrypoint: ['/bin/bash', '/neo4j-entrypoint.sh']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:7474']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
