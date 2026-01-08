@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~17 hours (ongoing)
+**Total Time**: ~20 hours (ongoing)
 
 ## Overview
 
@@ -101,6 +101,32 @@ Neo4j starts with a default `neo4j` user. I wanted a custom `memento` user with 
 - Confirmed GDS procedures load and execute properly
 - Ran sample PageRank queries to validate OpenGDS integration
 
+### Day 3 (Jan 8) - Configuration System [3h]
+
+**Morning (10:00-13:00)**: Config Architecture
+
+Built a flexible configuration system supporting multiple providers without code changes.
+
+**Challenge: Environment Variables in URLs**
+
+Cloudflare's API embeds the Account ID in the URL path, not as a header. Most config systems only resolve env vars for standalone values. Solution: resolve `{env:VAR}` patterns on raw JSON text before parsing, so it works anywhere - API keys, URLs, or nested structures.
+
+**Challenge: Provider-Specific Validation**
+
+Each provider has different requirements - OpenAI needs `apiKey` but forbids `baseUrl`, while `openai-compatible` requires both. Simple required/optional validation can't express these rules. Solution: Zod's `superRefine()` for conditional validation based on selected provider.
+
+**Components Built**:
+
+- `src/config/schema.ts` - Zod schema with conditional validation
+- `src/config/config.ts` - Config loader with `{env:VAR}` resolution
+- `config/memento.schema.json` - JSON Schema for IDE autocompletion
+
+**Testing & Validation**:
+
+- Tested multiple provider combinations in lab
+- Verified env var resolution in URLs works correctly
+- Validated clear error messages for misconfigurations
+
 ---
 
 ## Technical Decisions & Rationale
@@ -112,6 +138,7 @@ Neo4j starts with a default `neo4j` user. I wanted a custom `memento` user with 
 | **Bundled OpenGDS**              | Personalized PageRank for graph-aware retrieval in EXPAND phase        |
 | **Biome over ESLint**            | 10-20x faster, single tool for linting + formatting                    |
 | **Lefthook pre-commit**          | Auto-fix code on commit, consistent style without manual effort        |
+| **Zod for config validation**    | Type-safe, composable schemas with excellent error messages            |
 
 ---
 
