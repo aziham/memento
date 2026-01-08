@@ -1,0 +1,216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Memento Configuration",
+  "type": "object",
+  "required": ["proxy", "llm", "embedding"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "server": {
+      "type": "object",
+      "description": "Server configuration",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "default": 6366,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Port to listen on"
+        }
+      }
+    },
+    "proxy": {
+      "type": "object",
+      "description": "Upstream LLM proxy configuration",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "ollama", "custom"],
+          "description": "Upstream provider to proxy requests to"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL (required for custom, optional for ollama)"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["openai", "anthropic"],
+          "description": "API protocol (required for custom only)"
+        },
+        "providerName": {
+          "type": "string",
+          "description": "Display name for error messages (required for custom only)"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "provider": { "const": "custom" } } },
+          "then": { "required": ["baseUrl", "protocol", "providerName"] }
+        },
+        {
+          "if": {
+            "properties": { "provider": { "enum": ["openai", "anthropic"] } }
+          },
+          "then": {
+            "properties": {
+              "baseUrl": false,
+              "protocol": false,
+              "providerName": false
+            }
+          }
+        }
+      ]
+    },
+    "llm": {
+      "type": "object",
+      "description": "LLM configuration for internal operations",
+      "required": ["provider", "defaults"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "google",
+            "ollama",
+            "openai-compatible"
+          ],
+          "description": "LLM provider"
+        },
+        "providerName": {
+          "type": "string",
+          "description": "Display name (only for openai-compatible)"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key (use {env:VAR} for env reference)"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL (required for openai-compatible, optional for ollama)"
+        },
+        "defaults": {
+          "$ref": "#/definitions/llmOperationConfig",
+          "description": "Default settings inherited by operations"
+        },
+        "consolidation": {
+          "$ref": "#/definitions/llmOperationConfigPartial",
+          "description": "Settings for consolidation (overrides defaults)"
+        },
+        "retrieval": {
+          "$ref": "#/definitions/llmOperationConfigPartial",
+          "description": "Settings for retrieval (overrides defaults)"
+        }
+      }
+    },
+    "embedding": {
+      "type": "object",
+      "description": "Embedding provider configuration",
+      "required": ["provider", "model", "dimensions"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "google",
+            "cohere",
+            "mistral",
+            "ollama",
+            "openai-compatible"
+          ],
+          "description": "Embedding provider"
+        },
+        "providerName": {
+          "type": "string",
+          "description": "Display name (only for openai-compatible)"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier"
+        },
+        "dimensions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Embedding dimensions"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key (use {env:VAR} for env reference)"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Base URL (required for openai-compatible, optional for ollama)"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "llmOperationConfig": {
+      "type": "object",
+      "required": ["model"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Model identifier"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum tokens to generate"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum retry attempts"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Provider-specific options (e.g., reasoning_effort)"
+        }
+      }
+    },
+    "llmOperationConfigPartial": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Model identifier (overrides default)"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature (overrides default)"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum tokens to generate (overrides default)"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum retry attempts (overrides default)"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Provider-specific options (overrides default)"
+        }
+      }
+    }
+  }
+}

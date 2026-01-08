@@ -1,0 +1,30 @@
+{
+  "$schema": "./memento.schema.json",
+
+  "server": {
+    "port": 6366
+  },
+
+  "proxy": {
+    "provider": "openai"
+  },
+
+  "llm": {
+    "provider": "openai",
+    "apiKey": "{env:OPENAI_API_KEY}",
+
+    "defaults": {
+      "model": "gpt-4o",
+      "temperature": 0.5,
+      "maxTokens": 15000,
+      "maxRetries": 3
+    }
+  },
+
+  "embedding": {
+    "provider": "openai",
+    "model": "text-embedding-3-small",
+    "dimensions": 1536,
+    "apiKey": "{env:OPENAI_API_KEY}"
+  }
+}
