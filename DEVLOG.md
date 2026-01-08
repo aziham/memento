@@ -127,6 +127,16 @@ Each provider has different requirements - OpenAI needs `apiKey` but forbids `ba
 - Verified env var resolution in URLs works correctly
 - Validated clear error messages for misconfigurations
 
+**Unit Tests Added**:
+
+- `tests/config/config.test.ts` - Schema validation tests
+  - Valid config acceptance (minimal, custom provider)
+  - Server port defaults
+  - Config merging (consolidation inherits from defaults)
+  - Proxy provider validation (OpenAI forbids baseUrl, custom requires all fields)
+  - LLM provider validation (cloud requires apiKey, openai-compatible requires baseUrl)
+  - Embedding provider validation (cloud requires apiKey, ollama works without)
+
 ### Day 4 (Jan 9) - Embedding Provider [5h]
 
 **Afternoon (12:00-17:00)**: Multi-Provider Embedding System
