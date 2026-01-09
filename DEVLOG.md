@@ -170,6 +170,15 @@ Neo4j's vector index uses cosine similarity, which works best with normalized ve
 - Verified L2 normalization produces unit vectors
 - Validated Ollama and Cloudflare via openai-compatible
 
+**Unit Tests Added**:
+
+- `tests/providers/embedding/utils.test.ts` - L2 normalization tests
+  - Normalizes vectors to unit length
+  - Preserves already normalized vectors
+  - Handles zero vector without division by zero
+  - Handles high-dimensional vectors (1536-dim)
+  - Does not mutate input array
+
 ### Day 5 (Jan 10) - LLM Provider & Structured Output [9.5h]
 
 **Morning (11:00-14:30)**: Multi-Provider LLM System [3.5h]
