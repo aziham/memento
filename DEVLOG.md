@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~20 hours (ongoing)
+**Total Time**: ~25 hours (ongoing)
 
 ## Overview
 
@@ -127,6 +127,39 @@ Each provider has different requirements - OpenAI needs `apiKey` but forbids `ba
 - Verified env var resolution in URLs works correctly
 - Validated clear error messages for misconfigurations
 
+### Day 4 (Jan 9) - Embedding Provider [5h]
+
+**Afternoon (12:00-17:00)**: Multi-Provider Embedding System
+
+Built a unified embedding provider supporting 6 backends through Vercel AI SDK.
+
+**Challenge: Provider-Specific Dimension Handling**
+
+Different providers handle embedding dimensions differently. OpenAI uses `dimensions`, Google uses `outputDimensionality`, and Cohere/Mistral don't support dimension reduction at all. Solution: Provider-aware factory that applies dimension settings only where supported, using Vercel AI SDK's `wrapEmbeddingModel` middleware.
+
+**Challenge: L2 Normalization for Cosine Similarity**
+
+Neo4j's vector index uses cosine similarity, which works best with normalized vectors. Not all embedding providers return L2-normalized output. Solution: Always normalize embeddings in the client before returning, ensuring consistent behavior regardless of provider.
+
+**Components Built**:
+
+- `src/providers/embedding/factory.ts` - Provider factory with dimension handling
+- `src/providers/embedding/client.ts` - Wrapper with L2 normalization
+- `src/providers/embedding/types.ts` - EmbeddingClient interface
+- `src/providers/embedding/utils.ts` - L2 normalization utility
+
+**Providers Supported**:
+
+- OpenAI, Google, Cohere, Mistral (native SDK)
+- Ollama (via OpenAI-compatible endpoint)
+- Any OpenAI-compatible API (Cloudflare, Cerebras, etc.)
+
+**Testing & Validation**:
+
+- Tested dimension handling with OpenAI and Google
+- Verified L2 normalization produces unit vectors
+- Validated Ollama and Cloudflare via openai-compatible
+
 ---
 
 ## Technical Decisions & Rationale
@@ -139,6 +172,7 @@ Each provider has different requirements - OpenAI needs `apiKey` but forbids `ba
 | **Biome over ESLint**            | 10-20x faster, single tool for linting + formatting                    |
 | **Lefthook pre-commit**          | Auto-fix code on commit, consistent style without manual effort        |
 | **Zod for config validation**    | Type-safe, composable schemas with excellent error messages            |
+| **L2 normalization in client**   | Consistent cosine similarity regardless of provider normalization      |
 
 ---
 
