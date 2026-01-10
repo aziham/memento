@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~25 hours (ongoing)
+**Total Time**: ~34.5 hours (ongoing)
 
 ## Overview
 
@@ -160,19 +160,105 @@ Neo4j's vector index uses cosine similarity, which works best with normalized ve
 - Verified L2 normalization produces unit vectors
 - Validated Ollama and Cloudflare via openai-compatible
 
+### Day 5 (Jan 10) - LLM Provider & Structured Output [9.5h]
+
+**Morning (11:00-14:30)**: Multi-Provider LLM System [3.5h]
+
+Built a unified LLM provider using Vercel AI SDK v6 with direct provider packages (no gateway).
+
+**Challenge: Provider-Specific Model Instantiation**
+
+Each provider has different SDK initialization patterns - OpenAI uses `createOpenAI`, Anthropic uses `createAnthropic`, etc. Ollama doesn't have a native SDK but supports OpenAI-compatible endpoints.
+
+Solution: Factory pattern that maps provider config to the correct AI SDK package:
+
+- Native SDKs for OpenAI, Anthropic, Google
+- `createOpenAICompatible` for Ollama (via `/v1` endpoint) and other compatible APIs
+
+**Components Built**:
+
+- `src/providers/llm/factory.ts` - Provider factory with capability detection
+- `src/providers/llm/client.ts` - Unified client (`complete`, `completeJSON`, `generateWithTools`)
+- `src/providers/llm/types.ts` - LLMClient interface, Message types, CompletionOptions
+
+**Afternoon/Evening (16:00-22:00)**: 4-Tier Structured Output Strategy [6h]
+
+**Challenge: Provider-Specific Structured Output Support**
+
+Different LLM providers support different methods for structured output:
+
+- OpenAI: Native structured outputs (`response_format` with `json_schema`)
+- Anthropic: Tool calling only (no native structured output or JSON mode)
+- Google: JSON mode with `response_schema`
+- Ollama: Varies by model, often only JSON mode
+
+A single approach doesn't work across all providers. Solution: A tiered strategy pattern that tries methods in order of reliability, falling back automatically when one fails.
+
+**The 4-Tier Strategy**:
+
+1. **Structured Output** (Tier 1) - Native API support via `Output.object()`, most reliable
+2. **Tool Calling** (Tier 2) - Schema as tool definition, model forced to call with structured args
+3. **JSON Mode** (Tier 3) - `Output.json()` ensures valid JSON, schema in prompt for guidance
+4. **Prompt-Based** (Tier 4) - Schema in prompt, extract JSON from markdown/raw text
+
+**Challenge: Provider-Specific Strategy Ordering**
+
+Each provider has an optimal strategy order based on what works best:
+
+- OpenAI: Structured → Tool → JSON → Prompt
+- Anthropic: Tool → Prompt (no JSON mode or native structured output)
+- Google: JSON → Tool → Prompt
+- Ollama/Compatible: Try all in order (capabilities vary by model)
+
+**Challenge: Validation Failures**
+
+Even with the right method, models sometimes produce invalid output. Solution: Retry with error feedback - on validation failure, append the error to the conversation and retry (up to 2 retries per strategy). If all retries fail, fall back to the next strategy.
+
+**Challenge: JSON Extraction from Free-form Text**
+
+The prompt-based fallback receives raw text that may contain JSON wrapped in markdown, embedded in explanations, or truncated. Solution: Multi-pass extraction:
+
+1. Markdown code blocks (` ```json ... ``` `)
+2. Raw JSON objects (with brace-matching for nested structures)
+3. JSON arrays
+4. Truncated JSON salvaging (find last valid closing bracket)
+
+**Components Built**:
+
+- `src/providers/llm/structured-output/index.ts` - Strategy registry and executor with retry logic
+- `src/providers/llm/structured-output/types.ts` - Strategy interface, ProviderCapabilities
+- `src/providers/llm/structured-output/structured-output.ts` - Tier 1: Native structured output
+- `src/providers/llm/structured-output/tool-calling.ts` - Tier 2: Tool calling with forced choice
+- `src/providers/llm/structured-output/json-mode.ts` - Tier 3: JSON mode
+- `src/providers/llm/structured-output/prompt-based.ts` - Tier 4: Prompt-based with extraction
+
+**Providers Supported**:
+
+- OpenAI, Anthropic, Google (native SDK via `@ai-sdk/*`)
+- Ollama (via OpenAI-compatible endpoint at `/v1`)
+- Any OpenAI-compatible API (Cloudflare Workers AI, Cerebras, etc.)
+
+**Testing & Validation**:
+
+- Tested all 4 strategies in isolation with different schemas
+- Verified fallback chain works when strategies fail
+- Validated retry with error feedback improves success rate
+- Tested JSON extraction with various markdown formats and truncated responses
+
 ---
 
 ## Technical Decisions & Rationale
 
-| Decision                         | Rationale                                                              |
-| -------------------------------- | ---------------------------------------------------------------------- |
-| **Bun over Node.js**             | Runs TypeScript directly, faster startup, built-in test runner         |
-| **DozerDB over Neo4j Community** | Multi-database support (need `memory` database, not locked to `neo4j`) |
-| **Bundled OpenGDS**              | Personalized PageRank for graph-aware retrieval in EXPAND phase        |
-| **Biome over ESLint**            | 10-20x faster, single tool for linting + formatting                    |
-| **Lefthook pre-commit**          | Auto-fix code on commit, consistent style without manual effort        |
-| **Zod for config validation**    | Type-safe, composable schemas with excellent error messages            |
-| **L2 normalization in client**   | Consistent cosine similarity regardless of provider normalization      |
+| Decision                         | Rationale                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| **Bun over Node.js**             | Runs TypeScript directly, faster startup, built-in test runner              |
+| **DozerDB over Neo4j Community** | Multi-database support (need `memory` database, not locked to `neo4j`)      |
+| **Bundled OpenGDS**              | Personalized PageRank for graph-aware retrieval in EXPAND phase             |
+| **Biome over ESLint**            | 10-20x faster, single tool for linting + formatting                         |
+| **Lefthook pre-commit**          | Auto-fix code on commit, consistent style without manual effort             |
+| **Zod for config validation**    | Type-safe, composable schemas with excellent error messages                 |
+| **L2 normalization in client**   | Consistent cosine similarity regardless of provider normalization           |
+| **4-tier structured output**     | Reliable schema validation across all llm providers with automatic fallback |
 
 ---
 
