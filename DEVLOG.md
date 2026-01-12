@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~34.5 hours (ongoing)
+**Total Time**: ~43 hours (ongoing)
 
 ## Overview
 
@@ -245,20 +245,77 @@ The prompt-based fallback receives raw text that may contain JSON wrapped in mar
 - Validated retry with error feedback improves success rate
 - Tested JSON extraction with various markdown formats and truncated responses
 
+### Day 6 (Jan 12) - Graph Provider Foundation [8.5h]
+
+**Morning (10:00-13:00)**: Graph Provider Types & Factory [3h]
+
+Built the foundational types and interfaces for the graph persistence layer.
+
+**Challenge: Designing a Provider-Agnostic Interface**
+
+The GraphClient interface needs to support different graph database backends while exposing the right primitives for the retrieval and consolidation pipelines. Solution: Focus on domain operations (createEntities, searchVector, runPersonalizedPageRank) rather than raw Cypher, allowing future backends (e.g., FalkorDB, Memgraph) without changing Core.
+
+**Components Built**:
+
+- `src/providers/graph/types.ts` - GraphClient interface, Entity/Memory/Note types, edge types
+- `src/providers/graph/factory.ts` - Factory function for creating graph clients
+- `src/providers/graph/utils.ts` - Utilities (UUID v7, timestamps, Lucene sanitization, RRF fusion)
+- `src/providers/graph/index.ts` - Module exports
+
+**Afternoon (14:00-17:30)**: Neo4j Client Foundation [3.5h]
+
+Built the foundational Neo4j-specific modules for schema, error handling, and record mapping.
+
+**Challenge: Error Classification for Retry Logic**
+
+Neo4j errors need to be classified into retryable (transient) vs non-retryable (constraint violations). Solution: `classifyNeo4jError()` maps Neo4j error codes to standardized `GraphErrorType` enum, enabling consistent retry behavior across all operations.
+
+**Challenge: Idempotent Schema Initialization**
+
+Schema creation (constraints, indexes) needs to be safe to run multiple times, including during concurrent startup. Solution: All schema DDL uses `IF NOT EXISTS` clauses, with additional error catching for race conditions where another instance creates the same element.
+
+**Components Built**:
+
+- `src/providers/graph/neo4j/constants.ts` - Labels, relationship types, index names
+- `src/providers/graph/neo4j/errors.ts` - Error classification, retry logic, session lifecycle
+- `src/providers/graph/neo4j/mapping.ts` - Neo4j record → TypeScript object translators
+- `src/providers/graph/neo4j/schema.ts` - Schema initialization (constraints, vector/fulltext indexes)
+- `src/providers/graph/neo4j/index.ts` - Neo4j module exports
+
+**Evening (18:00-19:30)**: Neo4j Client & User Operations [1.5h]
+
+Built the main Neo4j GraphClient class and User node operations.
+
+**Challenge: Singleton User Node**
+
+The User node represents "the person talking to the AI" with a fixed ID of 'USER'. Needed idempotent creation via MERGE semantics for `getOrCreateUser`, while `createUser` should only be called once during `memento init`.
+
+**Components Built**:
+
+- `src/providers/graph/neo4j/client.ts` - Neo4jGraphClient implementing GraphClient interface
+- `src/providers/graph/neo4j/operations/user.ts` - User CRUD operations
+
+**Testing & Validation**:
+
+- Verified schema initialization is idempotent
+- Tested error classification with various Neo4j error types
+- Validated User node creation and retrieval
+
 ---
 
 ## Technical Decisions & Rationale
 
-| Decision                         | Rationale                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------- |
-| **Bun over Node.js**             | Runs TypeScript directly, faster startup, built-in test runner              |
-| **DozerDB over Neo4j Community** | Multi-database support (need `memory` database, not locked to `neo4j`)      |
-| **Bundled OpenGDS**              | Personalized PageRank for graph-aware retrieval in EXPAND phase             |
-| **Biome over ESLint**            | 10-20x faster, single tool for linting + formatting                         |
-| **Lefthook pre-commit**          | Auto-fix code on commit, consistent style without manual effort             |
-| **Zod for config validation**    | Type-safe, composable schemas with excellent error messages                 |
-| **L2 normalization in client**   | Consistent cosine similarity regardless of provider normalization           |
-| **4-tier structured output**     | Reliable schema validation across all llm providers with automatic fallback |
+| Decision                          | Rationale                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| **Bun over Node.js**              | Runs TypeScript directly, faster startup, built-in test runner              |
+| **DozerDB over Neo4j Community**  | Multi-database support (need `memory` database, not locked to `neo4j`)      |
+| **Bundled OpenGDS**               | Personalized PageRank for graph-aware retrieval in EXPAND phase             |
+| **Biome over ESLint**             | 10-20x faster, single tool for linting + formatting                         |
+| **Lefthook pre-commit**           | Auto-fix code on commit, consistent style without manual effort             |
+| **Zod for config validation**     | Type-safe, composable schemas with excellent error messages                 |
+| **L2 normalization in client**    | Consistent cosine similarity regardless of provider normalization           |
+| **4-tier structured output**      | Reliable schema validation across all llm providers with automatic fallback |
+| **Provider-agnostic GraphClient** | Domain-focused interface allows swapping Neo4j for other graph DBs later    |
 
 ---
 
