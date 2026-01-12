@@ -320,6 +320,20 @@ The User node represents "the person talking to the AI" with a fixed ID of 'USER
 - Tested error classification with various Neo4j error types
 - Validated User node creation and retrieval
 
+**Unit Tests Added**:
+
+- `tests/providers/graph/utils.test.ts` - Graph utility tests
+  - UUID v7 generation (format, uniqueness, time-ordering)
+  - ISO 8601 timestamp generation
+  - Lucene query sanitization (escapes special characters)
+  - RRF fusion (combines rankings, handles edge cases)
+- `tests/providers/graph/neo4j/errors.test.ts` - Error classification tests
+  - CONNECTION_ERROR classification (connection, unavailable)
+  - CONSTRAINT_VIOLATION classification (message and error codes)
+  - TRANSIENT_ERROR classification (deadlock, timeout)
+  - QUERY_ERROR fallback for unknown errors
+  - Schema already exists detection (equivalent, already exists, syntax errors)
+
 ### Day 7 (Jan 13) - Graph Provider Operations [10h]
 
 **Morning (10:00-13:30)**: Node & Edge Operations [3.5h]
