@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~43 hours (ongoing)
+**Total Time**: ~53.5 hours (ongoing)
 
 ## Overview
 
@@ -301,6 +301,67 @@ The User node represents "the person talking to the AI" with a fixed ID of 'USER
 - Tested error classification with various Neo4j error types
 - Validated User node creation and retrieval
 
+### Day 7 (Jan 13) - Graph Provider Operations [10.5h]
+
+**Morning (10:00-13:30)**: Node & Edge Operations [3.5h]
+
+Built CRUD operations for Entity, Memory, and Note nodes, plus structural edge creation.
+
+**Challenge: Bulk Operations with UNWIND**
+
+Creating entities, memories, and notes one at a time would be slow. Solution: Use Cypher's `UNWIND` to batch operations in a single query. MERGE for entities (upsert by name), CREATE for memories/notes (always new).
+
+**Challenge: Dynamic SET Clauses for Updates**
+
+Update operations need to only modify provided fields, not overwrite everything. Solution: Build SET clauses dynamically based on which fields are present in the update payload, preserving unspecified fields.
+
+**Components Built**:
+
+- `src/providers/graph/neo4j/operations/nodes.ts` - Entity/Memory/Note CRUD with bulk operations
+- `src/providers/graph/neo4j/operations/edges.ts` - MENTIONS, EXTRACTED_FROM, INVALIDATES, ABOUT edges
+
+**Afternoon (14:30-19:00)**: Search Operations & Query Repository [4.5h]
+
+Built the search primitives (vector, fulltext, hybrid) and centralized Cypher query repository.
+
+**Challenge: Hybrid Search with RRF**
+
+Vector search finds semantically similar content, fulltext finds exact keywords. Need both for robust retrieval. Solution: Run vector and fulltext searches in parallel, combine results using Reciprocal Rank Fusion (RRF) which weights items by their rank in each list.
+
+**Challenge: Centralized Query Repository**
+
+Cypher queries scattered across operation files makes them hard to audit and maintain. Solution: `queries.ts` as a single source of truth with intent documentation explaining "why" for each query pattern.
+
+**Components Built**:
+
+- `src/providers/graph/neo4j/operations/search.ts` - Vector, fulltext, hybrid search, neighborhood traversal
+- `src/providers/graph/neo4j/queries.ts` - All Cypher queries with semantic documentation
+
+**Evening (19:30-21:30)**: GDS & Transaction Support [2h]
+
+Built Graph Data Science operations and atomic transaction support.
+
+**Challenge: Personalized PageRank Integration**
+
+PPR requires an in-memory graph projection, running the algorithm, then cleanup. Must handle concurrent queries without graph name collisions. Solution: Generate unique graph names with timestamp + random suffix, always cleanup in finally block.
+
+**Challenge: Atomic Consolidation Transactions**
+
+Consolidation creates notes, entities, memories, and edges that must all succeed or all fail. Solution: `executeTransaction` wraps operations in Neo4j's managed transaction, with a `TransactionClient` interface that mirrors GraphClient's write operations.
+
+**Components Built**:
+
+- `src/providers/graph/neo4j/operations/gds.ts` - Personalized PageRank with graph projection lifecycle
+- `src/providers/graph/neo4j/operations/transaction.ts` - Transaction-scoped write operations
+- `src/providers/graph/neo4j/operations/index.ts` - Operations module re-exports
+
+**Testing & Validation**:
+
+- Tested bulk node creation with various batch sizes
+- Verified hybrid search produces better results than either search alone
+- Validated PPR graph projection cleanup on success and failure
+- Tested transaction rollback on simulated errors
+
 ---
 
 ## Technical Decisions & Rationale
@@ -316,6 +377,7 @@ The User node represents "the person talking to the AI" with a fixed ID of 'USER
 | **L2 normalization in client**    | Consistent cosine similarity regardless of provider normalization           |
 | **4-tier structured output**      | Reliable schema validation across all llm providers with automatic fallback |
 | **Provider-agnostic GraphClient** | Domain-focused interface allows swapping Neo4j for other graph DBs later    |
+| **Centralized query repository**  | All Cypher in one file with intent docs makes auditing and maintenance easy |
 
 ---
 
