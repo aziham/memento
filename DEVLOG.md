@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~53.5 hours (ongoing)
+**Total Time**: ~60.5 hours (ongoing)
 
 ## Overview
 
@@ -361,6 +361,54 @@ Consolidation creates notes, entities, memories, and edges that must all succeed
 - Verified hybrid search produces better results than either search alone
 - Validated PPR graph projection cleanup on success and failure
 - Tested transaction rollback on simulated errors
+
+---
+
+## Week 2: Core Pipelines (Jan 12-18)
+
+### Day 8 (Jan 14) - Consolidation Core [7h]
+
+**Morning (10:00-13:30)**: Types, Schemas, Config, Utils [3.5h]
+
+Built the foundational types and utilities for the consolidation pipeline.
+
+**Challenge: Zod Schema Validation for LLM Outputs**
+
+LLM outputs need strict validation - entity types must match enum values, memory types must be valid, and all required fields must be present. Solution: Zod schemas with `.strict()` to reject unknown fields and detailed error messages for debugging.
+
+**Challenge: Retry Logic for LLM Calls**
+
+LLM calls can fail due to rate limits, transient errors, or validation failures. Solution: `callAgent` wrapper with exponential backoff retry logic, tracking stats for observability.
+
+**Components Built**:
+
+- `src/core/consolidation/types.ts` - TypeScript types for entity search, LLM config, pipeline stats
+- `src/core/consolidation/schemas.ts` - Zod schemas for entity/memory extraction and resolution
+- `src/core/consolidation/config.ts` - Default LLM configuration for consolidation phases
+- `src/core/consolidation/utils.ts` - Utilities (assertDefined, callAgent, formatInput)
+
+**Afternoon (14:00-18:00)**: Pipeline Orchestration [4h]
+
+Built the main consolidation pipeline that coordinates all 8 phases.
+
+**Challenge: Transaction Boundaries**
+
+The write phase creates notes, entities, memories, and edges that must all succeed or all fail. Solution: Use GraphClient's `executeTransaction` to wrap all write operations in a single atomic transaction.
+
+**Challenge: Pipeline Stats Tracking**
+
+Need visibility into LLM call counts and retries for debugging and cost tracking. Solution: Pass mutable `PipelineStats` object through all phases, incrementing counters as operations execute.
+
+**Components Built**:
+
+- `src/core/consolidation/pipeline.ts` - Main pipeline orchestrating 8 phases with transaction support
+- `src/core/consolidation/index.ts` - Public API exports
+
+**Testing & Validation**:
+
+- Verified Zod schemas reject invalid LLM outputs
+- Tested retry logic with simulated failures
+- Validated transaction rollback on write errors
 
 ---
 
