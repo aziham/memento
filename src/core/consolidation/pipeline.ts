@@ -1,27 +1,40 @@
 /**
  * Consolidation Pipeline
  *
- * Two parallel branches that join for memory resolution:
+ * Transforms a user's note into structured knowledge graph updates. The pipeline
+ * uses a parallel architecture to maximize throughput while ensuring data consistency.
  *
- * Branch A: Context Retrieval
- *   1. Embed note content
- *   2. Call retrieval pipeline
- *   3. HyDE augmentation
- *   4. Merge and return top K memories
+ * Architecture: Two branches run in parallel, then join for final resolution:
  *
- * Branch B: Entity & Memory Extraction
- *   1. Extract entities (LLM)
- *   2. Search entities (embed + hybrid search)
- *   3. Resolve entities (LLM)
- *   4. Extract memories (LLM)
+ * Branch A (Context Retrieval):
+ *   Finds existing memories that might relate to or conflict with the new note.
+ *   Uses the retrieval pipeline + HyDE augmentation to find semantically similar content.
+ *   Output: Existing memories that the LLM will compare against.
  *
- * Join: Resolve Memories
- *   - LLM sees ALL extracted + ALL existing memories
- *   - Decides: ADD / SKIP / INVALIDATE
+ * Branch B (Entity & Memory Extraction):
+ *   Extracts structured information from the note using LLM:
+ *   1. Extract entities (people, projects, technologies mentioned)
+ *   2. Search for matching existing entities in the graph
+ *   3. Resolve each entity: CREATE new or MATCH existing
+ *   4. Extract memories (facts, preferences, events) linked to resolved entities
+ *   Output: Extracted entities and memories ready for resolution.
  *
- * Write Graph (called separately in index.ts):
- *   - Embed memories
- *   - Write to Neo4j
+ * Why parallel? The branches are independent - context retrieval doesn't need
+ * extracted entities, and extraction doesn't need existing memories. Running them
+ * in parallel cuts latency roughly in half.
+ *
+ * Join Phase (Memory Resolution):
+ *   The LLM sees ALL extracted memories from Branch B alongside ALL existing
+ *   memories from Branch A. For each extracted memory, it decides:
+ *   - ADD: New information, no conflicts with existing memories
+ *   - SKIP: Duplicate of an existing memory (no value in storing again)
+ *   - INVALIDATE: Contradicts/supersedes existing memory (creates INVALIDATES edge)
+ *
+ * Stats tracking: The pipeline tracks LLM call counts and retries for observability.
+ * This helps diagnose issues and monitor costs.
+ *
+ * Note: Graph writing happens separately after this pipeline returns, allowing
+ * the caller to review decisions before committing to the database.
  */
 
 import type { EmbeddingClient } from '@/providers/embedding/types';
@@ -68,10 +81,15 @@ export type { PipelineStats } from './types';
 /**
  * Run the consolidation pipeline.
  *
+ * Orchestrates the parallel branches and join phase. The stats object is passed
+ * through all phases and mutated to track LLM usage - this is intentional to
+ * avoid complex stat aggregation logic.
+ *
  * @param input - The note content and timestamp
  * @param deps - Dependencies (graph, embedding, LLM clients)
  * @param options - Pipeline options (temperature, maxTokens, etc. from config.llm.consolidation)
- * @param userName - The user's known name (if any) for context
+ * @param userName - The user's known name (if any) for context in extraction prompts
+ * @returns Entity decisions, memory decisions, optional user update, and stats
  */
 export async function runPipeline(
   input: ConsolidationInput,
@@ -158,7 +176,13 @@ interface BranchBResult {
 /**
  * Branch B: Entity & Memory Extraction
  *
- * Runs the entity/memory extraction phases sequentially.
+ * Runs sequentially within the branch because each phase depends on the previous:
+ * - Entity search needs extracted entities to know what to search for
+ * - Entity resolution needs search results to decide CREATE vs MATCH
+ * - Memory extraction needs resolved entities to link memories correctly
+ *
+ * This sequential dependency is why Branch B is its own function - it encapsulates
+ * the internal ordering while the outer pipeline only sees "run Branch B".
  */
 async function runEntityMemoryBranch(
   input: ConsolidationInput,
