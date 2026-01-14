@@ -443,6 +443,18 @@ Need visibility into LLM call counts and retries for debugging and cost tracking
 - Tested retry logic with simulated failures
 - Validated transaction rollback on write errors
 
+**Unit Tests Added**:
+
+- `tests/core/consolidation/schemas.test.ts` - Schema validation tests
+  - ConsolidationInputSchema (content, timestamp validation)
+  - ExtractedEntitySchema (entity types, isWellKnown)
+  - EntityDecisionSchema (CREATE/MATCH actions, embeddings)
+  - MemoryDecisionSchema (ADD/SKIP/INVALIDATE actions, validAt)
+  - ResolvedEntitySchema and ResolveEntitiesOutputSchema
+- `tests/core/consolidation/utils.test.ts` - Utility tests
+  - assertDefined (null/undefined throws, falsy values pass)
+  - normalizeEntityName (title case, acronym preservation, mixed case)
+
 ### Day 9 (Jan 15) - LLM Agents [8h]
 
 **Morning (10:00-13:00)**: Entity Extraction & Resolution [3h]
