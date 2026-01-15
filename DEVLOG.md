@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~60.5 hours (ongoing)
+**Total Time**: ~68.5 hours (ongoing)
 
 ## Overview
 
@@ -409,6 +409,55 @@ Need visibility into LLM call counts and retries for debugging and cost tracking
 - Verified Zod schemas reject invalid LLM outputs
 - Tested retry logic with simulated failures
 - Validated transaction rollback on write errors
+
+### Day 9 (Jan 15) - LLM Agents [8h]
+
+**Morning (10:00-13:00)**: Entity Extraction & Resolution [3h]
+
+Built LLM agents for extracting and resolving entities from note content.
+
+**Challenge: Entity Type Classification**
+
+Entities need to be classified into specific types (PERSON, ORGANIZATION, CONCEPT, etc.) for proper graph modeling. Solution: Provide clear type definitions and examples in the prompt, with Zod enum validation to ensure only valid types are returned.
+
+**Challenge: Entity Resolution Against Existing Graph**
+
+Extracted entities might already exist in the graph with different names or descriptions. Solution: Pass search results to the resolver agent, which uses semantic similarity and context to determine if entities match existing ones.
+
+**Components Built**:
+
+- `src/core/consolidation/agents/entity-extractor.ts` - Extracts entities with type, name, description
+- `src/core/consolidation/agents/entity-resolver.ts` - Resolves entities against search results
+- `src/core/consolidation/agents/index.ts` - Agent module exports
+
+**Afternoon (13:30-20:00)**: Memory Extraction & Resolution [5h]
+
+Built LLM agents for extracting and consolidating memories.
+
+**Challenge: Memory Type Classification**
+
+Memories come in different types (FACT, PREFERENCE, EVENT, etc.) with different consolidation rules. Solution: Detailed type definitions with examples, and confidence scores to help prioritize during resolution.
+
+**Challenge: Memory Consolidation Logic**
+
+New memories might duplicate, update, or invalidate existing ones. Solution: Memory resolver agent compares extracted memories with retrieved context, determining the relationship (NEW, UPDATE, INVALIDATE) and providing reasoning.
+
+**Challenge: HyDE for Better Retrieval**
+
+Simple vector search might miss relevant memories due to vocabulary mismatch. Solution: HyDE (Hypothetical Document Embeddings) generates hypothetical memories that might exist, improving retrieval coverage.
+
+**Components Built**:
+
+- `src/core/consolidation/agents/memory-extractor.ts` - Extracts memories with type, content, entities
+- `src/core/consolidation/agents/memory-resolver.ts` - Consolidates memories with existing ones
+- `src/core/consolidation/agents/hyde-generator.ts` - Generates hypothetical documents for retrieval
+
+**Testing & Validation**:
+
+- Tested entity extraction with various note types
+- Verified entity resolution correctly matches existing entities
+- Validated memory consolidation logic with overlapping memories
+- Tested HyDE generation improves retrieval recall
 
 ---
 
