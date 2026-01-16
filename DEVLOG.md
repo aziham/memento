@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~68.5 hours (ongoing)
+**Total Time**: ~76 hours (ongoing)
 
 ## Overview
 
@@ -245,7 +245,7 @@ The prompt-based fallback receives raw text that may contain JSON wrapped in mar
 - Validated retry with error feedback improves success rate
 - Tested JSON extraction with various markdown formats and truncated responses
 
-### Day 6 (Jan 12) - Graph Provider Foundation [8.5h]
+### Day 6 (Jan 12) - Graph Provider Foundation [8h]
 
 **Morning (10:00-13:00)**: Graph Provider Types & Factory [3h]
 
@@ -301,7 +301,7 @@ The User node represents "the person talking to the AI" with a fixed ID of 'USER
 - Tested error classification with various Neo4j error types
 - Validated User node creation and retrieval
 
-### Day 7 (Jan 13) - Graph Provider Operations [10.5h]
+### Day 7 (Jan 13) - Graph Provider Operations [10h]
 
 **Morning (10:00-13:30)**: Node & Edge Operations [3.5h]
 
@@ -366,7 +366,7 @@ Consolidation creates notes, entities, memories, and edges that must all succeed
 
 ## Week 2: Core Pipelines (Jan 12-18)
 
-### Day 8 (Jan 14) - Consolidation Core [7h]
+### Day 8 (Jan 14) - Consolidation Core [7.5h]
 
 **Morning (10:00-13:30)**: Types, Schemas, Config, Utils [3.5h]
 
@@ -459,22 +459,87 @@ Simple vector search might miss relevant memories due to vocabulary mismatch. So
 - Validated memory consolidation logic with overlapping memories
 - Tested HyDE generation improves retrieval recall
 
+### Day 10 (Jan 16) - Pipeline Phases [8h]
+
+**Morning (10:00-12:30)**: Entity Phases [2.5h]
+
+Built pipeline phases for entity extraction, search, and resolution.
+
+**Challenge: Batch Embedding for Entity Search**
+
+Searching entities one at a time would be slow. Solution: Batch embed all "Name: Description" strings in a single call, then run hybrid search for each entity in parallel.
+
+**Challenge: Embedding Reuse**
+
+Entity embeddings are needed both for search and for writing to the graph. Solution: Return embeddings from search phase for reuse in write phase, avoiding redundant embedding calls.
+
+**Components Built**:
+
+- `src/core/consolidation/phases/extract-entities.ts` - Calls entity-extractor agent
+- `src/core/consolidation/phases/search-entities.ts` - Batch embeds and searches entities
+- `src/core/consolidation/phases/resolve-entities.ts` - Calls entity-resolver agent
+
+**Afternoon (13:00-15:00)**: Memory Phases [2h]
+
+Built pipeline phases for memory extraction and resolution.
+
+**Components Built**:
+
+- `src/core/consolidation/phases/extract-memories.ts` - Calls memory-extractor agent
+- `src/core/consolidation/phases/resolve-memories.ts` - Calls memory-resolver agent
+
+**Afternoon/Evening (15:30-19:30)**: Context Retrieval & Graph Write [3.5h]
+
+Built the most complex phases: context retrieval and graph writing.
+
+**Challenge: HyDE Integration with Retrieval Pipeline**
+
+The retrieval pipeline provides good results, but HyDE can improve coverage by generating hypothetical memories. Solution: Run both in parallel and merge results, deduplicating by memory ID.
+
+**Challenge: Atomic Graph Writes**
+
+Writing notes, entities, memories, and edges must be atomic - all succeed or all fail. Solution: Use transaction-scoped operations, with proper error handling and rollback.
+
+**Challenge: Entity Deduplication**
+
+Multiple memories might reference the same entity. Solution: Deduplicate entities by name before writing, ensuring each entity is created only once.
+
+**Challenge: Memory Invalidation**
+
+When a memory invalidates an existing one, we need to create an INVALIDATES edge. Solution: Track invalidations during resolution and create edges in write phase.
+
+**Components Built**:
+
+- `src/core/consolidation/phases/retrieve-context.ts` - Combines retrieval pipeline with HyDE
+- `src/core/consolidation/phases/write-graph.ts` - Atomic graph writes with deduplication
+- `src/core/consolidation/phases/index.ts` - Phase module exports
+
+**Testing & Validation**:
+
+- Tested batch embedding reduces latency vs sequential
+- Verified entity deduplication works correctly
+- Validated transaction rollback on write errors
+- Tested HyDE improves retrieval recall without duplicates
+
 ---
 
 ## Technical Decisions & Rationale
 
-| Decision                          | Rationale                                                                   |
-| --------------------------------- | --------------------------------------------------------------------------- |
-| **Bun over Node.js**              | Runs TypeScript directly, faster startup, built-in test runner              |
-| **DozerDB over Neo4j Community**  | Multi-database support (need `memory` database, not locked to `neo4j`)      |
-| **Bundled OpenGDS**               | Personalized PageRank for graph-aware retrieval in EXPAND phase             |
-| **Biome over ESLint**             | 10-20x faster, single tool for linting + formatting                         |
-| **Lefthook pre-commit**           | Auto-fix code on commit, consistent style without manual effort             |
-| **Zod for config validation**     | Type-safe, composable schemas with excellent error messages                 |
-| **L2 normalization in client**    | Consistent cosine similarity regardless of provider normalization           |
-| **4-tier structured output**      | Reliable schema validation across all llm providers with automatic fallback |
-| **Provider-agnostic GraphClient** | Domain-focused interface allows swapping Neo4j for other graph DBs later    |
-| **Centralized query repository**  | All Cypher in one file with intent docs makes auditing and maintenance easy |
+| Decision                             | Rationale                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| **Bun over Node.js**                 | Runs TypeScript directly, faster startup, built-in test runner                                      |
+| **DozerDB over Neo4j Community**     | Multi-database support (need `memory` database, not locked to `neo4j`)                              |
+| **Bundled OpenGDS**                  | Personalized PageRank for graph-aware retrieval in EXPAND phase                                     |
+| **Biome over ESLint**                | 10-20x faster, single tool for linting + formatting                                                 |
+| **Lefthook pre-commit**              | Auto-fix code on commit, consistent style without manual effort                                     |
+| **Zod for config validation**        | Type-safe, composable schemas with excellent error messages                                         |
+| **L2 normalization in client**       | Consistent cosine similarity regardless of provider normalization                                   |
+| **4-tier structured output**         | Reliable schema validation across all llm providers with automatic fallback                         |
+| **Provider-agnostic GraphClient**    | Domain-focused interface allows swapping Neo4j for other graph DBs later                            |
+| **Centralized query repository**     | All Cypher in one file with intent docs makes auditing and maintenance easy                         |
+| **HyDE for retrieval augmentation**  | Generates hypothetical documents to improve recall, covering vocabulary mismatches in vector search |
+| **8-phase consolidation pipeline**   | Separates extraction, search, resolution, and writing for independent testing and clear boundaries  |
+| **Batch embedding in consolidation** | Single API call for multiple entities reduces latency vs sequential embedding                       |
 
 ---
 
