@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~76 hours (ongoing)
+**Total Time**: ~83 hours (ongoing)
 
 ## Overview
 
@@ -520,6 +520,50 @@ When a memory invalidates an existing one, we need to create an INVALIDATES edge
 - Verified entity deduplication works correctly
 - Validated transaction rollback on write errors
 - Tested HyDE improves retrieval recall without duplicates
+
+### Day 11 (Jan 17) - Retrieval Core [7h]
+
+**Morning (10:00-13:30)**: Types, Config, Utils [3.5h]
+
+Built the foundational types and configuration for the retrieval pipeline.
+
+**Challenge: Multi-Format Output**
+
+The retrieval pipeline needs to support both JSON (for programmatic access) and formatted text (for human readability). Solution: Separate formatting layer that transforms retrieval results into either structured JSON or readable text with proper indentation and sections.
+
+**Challenge: Configurable Pipeline Phases**
+
+Different use cases need different retrieval strategies - some prioritize speed, others prioritize diversity or provenance. Solution: Granular configuration for each phase (LAND, ANCHOR, EXPAND, DISTILL, TRACE) with sensible defaults based on research.
+
+**Components Built**:
+
+- `src/core/retrieval/types.ts` - TypeScript types for 5-phase pipeline, memory data, retrieval output
+- `src/core/retrieval/config.ts` - Phase-specific configuration with research-backed defaults
+- `src/core/retrieval/utils.ts` - Content normalization utilities
+
+**Afternoon (14:00-18:00)**: Pipeline & Formatting [4h]
+
+Built the main retrieval pipeline orchestration and output formatting.
+
+**Challenge: Phase Orchestration**
+
+The 5 phases (LAND → ANCHOR → EXPAND → DISTILL → TRACE) must execute sequentially, passing data between phases while maintaining type safety. Solution: Pipeline function that coordinates phases, with clear input/output contracts for each phase.
+
+**Challenge: Provenance Tracking**
+
+The LLM need to understand why memories were retrieved and how they're connected. Solution: TRACE phase reconstructs paths from query → entities → memories, showing the reasoning chain.
+
+**Components Built**:
+
+- `src/core/retrieval/pipeline.ts` - Main pipeline orchestrating 5 phases
+- `src/core/retrieval/format.ts` - JSON and formatted text output with provenance
+- `src/core/retrieval/index.ts` - Public API exports
+
+**Testing & Validation**:
+
+- Verified pipeline executes phases in correct order
+- Tested JSON output matches schema
+- Validated formatted text is human-readable with proper sections
 
 ---
 
