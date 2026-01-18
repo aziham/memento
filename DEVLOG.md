@@ -656,6 +656,27 @@ Standard PPR treats all source nodes equally, but some anchor entities are more 
 - Validated MMR increases diversity without sacrificing too much relevance
 - Confirmed Semantic PPR prioritizes query-relevant paths
 
+**Unit Tests Added**:
+
+- `tests/core/retrieval/algorithms/similarity.test.ts` - Cosine similarity tests
+  - Identical, orthogonal, and opposite vectors
+  - Zero and mismatched length edge cases
+- `tests/core/retrieval/algorithms/normalize.test.ts` - Normalization tests
+  - Z-score distribution alignment (tight vs wide distributions)
+  - Min-max normalization to [0, 1] range
+  - Edge cases: single score, identical scores, negative values
+- `tests/core/retrieval/algorithms/fusion.test.ts` - Search fusion tests
+  - Coverage-adjusted weights with penalty for sparse results
+  - Result combination from vector and fulltext sources
+  - Quality threshold filtering
+- `tests/core/retrieval/algorithms/mmr.test.ts` - MMR tests
+  - Adaptive lambda computation (score gap → relevance/diversity)
+  - Diversity-aware reranking with embeddings
+- `tests/core/retrieval/algorithms/weights.test.ts` - Entity weight tests
+  - Multi-signal weighting (semantic, memory, structural)
+  - Log-dampening prevents hub domination
+  - Weight normalization to sum to 1
+
 ### Day 13 (Jan 19) - Retrieval Phases [7.5h]
 
 **Morning (10:00-12:30)**: LAND & ANCHOR Phases [2.5h]
