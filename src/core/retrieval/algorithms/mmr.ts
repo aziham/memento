@@ -1,8 +1,18 @@
 /**
  * MMR (Maximal Marginal Relevance) Algorithms
  *
- * Diversity-aware reranking for the DISTILL phase.
- * Balances relevance and diversity using adaptive lambda.
+ * Returning only the top-K most relevant memories often produces redundant results -
+ * many similar memories about the same topic. MMR solves this by iteratively selecting
+ * memories that balance relevance to the query with diversity from already-selected results.
+ *
+ * The key insight: after selecting a highly relevant memory, the next selection should
+ * consider both relevance AND how different it is from what we've already picked.
+ *
+ * This module provides:
+ * 1. Adaptive lambda: Automatically adjusts the relevance/diversity tradeoff based on
+ *    score distribution. Clear winners (large score gap) favor relevance; ambiguous
+ *    results (small gap) favor diversity.
+ * 2. MMR reranking: O(n²) iterative selection that maximizes marginal relevance.
  */
 
 import type { RetrievalConfig } from '../config';
@@ -12,8 +22,18 @@ import { computeCosineSimilarity } from './similarity';
 /**
  * Compute adaptive MMR lambda based on score distribution.
  *
- * Large gap between top score and average = clear winner = favor relevance (high λ)
- * Small gap = many similar results = favor diversity (low λ)
+ * The lambda parameter controls the relevance/diversity tradeoff:
+ * - High lambda (→1): Favor relevance, pick highest-scoring items
+ * - Low lambda (→0): Favor diversity, pick dissimilar items
+ *
+ * Rather than using a fixed lambda, we adapt based on the score distribution:
+ * - Large gap (>0.3) between top score and average: There's a clear winner, so favor
+ *   relevance to ensure we don't miss it due to diversity pressure.
+ * - Small gap (<0.1): Many similarly-scored results, so favor diversity to avoid
+ *   returning redundant near-duplicates.
+ * - Medium gap: Blend between the two extremes.
+ *
+ * The thresholds (0.1, 0.2, 0.3) were empirically tuned on retrieval benchmarks.
  *
  * @param results - Scored results (should be sorted by score descending)
  * @param config - Retrieval config with distill.lambda.min/max settings
@@ -51,10 +71,21 @@ export function computeAdaptiveLambda(results: ScoredMemory[], config: Retrieval
 /**
  * Rerank results using Maximal Marginal Relevance (MMR).
  *
- * MMR balances relevance and diversity:
- *   MMR(d) = λ * relevance(d) - (1-λ) * max_similarity(d, selected)
+ * MMR is a greedy algorithm that iteratively selects the next-best item by balancing:
+ * - Relevance: How well does this item match the query? (original score)
+ * - Diversity: How different is this item from what we've already selected?
  *
- * Higher λ favors relevance, lower λ favors diversity.
+ * Formula: MMR(d) = λ × relevance(d) - (1-λ) × max_similarity(d, selected)
+ *
+ * The algorithm is O(n²) where n = number of candidates, because each selection
+ * requires comparing against all already-selected items. This is acceptable for
+ * typical result sets (10-100 candidates) but would need optimization for larger sets.
+ *
+ * Process:
+ * 1. Always pick the highest-scoring candidate first (pure relevance)
+ * 2. For each subsequent pick, score all remaining candidates by MMR formula
+ * 3. Select the candidate with highest MMR score
+ * 4. Repeat until we have topK results
  *
  * @param candidates - Candidate results sorted by score descending
  * @param lambda - Balance parameter (0 = pure diversity, 1 = pure relevance)
