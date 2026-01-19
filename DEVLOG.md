@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~90.5 hours (ongoing)
+**Total Time**: ~98 hours (ongoing)
 
 ## Overview
 
@@ -610,6 +610,67 @@ Standard PPR treats all source nodes equally, but some anchor entities are more 
 - Tested distribution alignment handles different score ranges correctly
 - Validated MMR increases diversity without sacrificing too much relevance
 - Confirmed Semantic PPR prioritizes query-relevant paths
+
+### Day 13 (Jan 19) - Retrieval Phases [7.5h]
+
+**Morning (10:00-12:30)**: LAND & ANCHOR Phases [2.5h]
+
+Implemented the initial search and entity weighting phases.
+
+**Challenge: Heterogeneous Score Distribution Alignment**
+
+The LAND phase merges vector search (cosine similarity: 0.7-0.95) with fulltext search (BM25 scores: 1-50). Combining these directly would bias heavily toward fulltext. Solution: Implemented z-score normalization that transforms both distributions to `{mean: 0.5, std: 0.2}` before fusion. Added coverage penalty that reduces weight for sparse result sets - if fulltext returns only 2 results while vector returns 50, fulltext weight drops from 0.3 to 0.12 (2/5 coverage × 0.3).
+
+**Challenge: Three-Signal Anchor Weight Fusion**
+
+ANCHOR phase needed to balance semantic relevance, memory density, and graph structure. High-degree hub entities (degree 10,000) were dominating specific semantic matches. Solution: Combined three signals with configurable weights: (1) entity-query cosine similarity, (2) average memory-query similarity for memories about that entity, (3) log-dampened degree centrality. The log(1 + degree) scaling prevents hubs from overwhelming - degree 10 → 2.4, degree 10,000 → 9.2, only 4x difference instead of 1000x. Added frequency threshold filtering (minMemories=2) to remove noise entities appearing in only 1 memory.
+
+**Components Built**:
+
+- `src/core/retrieval/phases/land.ts` - Vector/fulltext fusion with coverage penalty
+- `src/core/retrieval/phases/anchor.ts` - Three-signal entity weighting
+- `src/core/retrieval/phases/index.ts` - Phase module exports
+
+**Afternoon (13:00-15:30)**: EXPAND & DISTILL Phases [2.5h]
+
+Built graph traversal and diversity filtering with adaptive parameters.
+
+**Challenge: GDS API Limitation Workaround**
+
+Hit a frustrating limitation: Neo4j's GDS stream API doesn't support weighted source nodes for Personalized PageRank. The API accepts source node IDs but treats them equally, ignoring anchor weights. Solution: Compensated by filtering anchors to only high-weight entities (threshold-based) before passing to PPR, rather than soft-weighting all anchors. Added graceful handling for memories with missing embeddings - they keep their PPR structure score unchanged instead of failing.
+
+**Challenge: Adaptive Lambda for MMR**
+
+Fixed lambda (0.7) for MMR diversity was either too aggressive or too weak depending on query type. "my email address" returns [0.95, 0.42, 0.38] with 0.53 gap - clear winner exists, should favor relevance. "my coding preferences" returns [0.78, 0.75, 0.73, 0.71] with 0.04 gap - many similar results, should favor diversity. Solution: Implemented adaptive lambda based on score gap between top result and average. Gap > 0.3 → max lambda (favor relevance), gap < 0.1 → min lambda (favor diversity). The MMR algorithm is O(n²) but necessary for quality - iteratively selects items balancing relevance and max cosine similarity to already-selected set.
+
+**Components Built**:
+
+- `src/core/retrieval/phases/expand.ts` - PPR with weighted anchor workaround
+- `src/core/retrieval/phases/distill.ts` - Adaptive MMR diversity filtering
+
+**Afternoon/Evening (16:00-18:30)**: TRACE Phase [2.5h]
+
+Built provenance reconstruction with parallel data fetching and personalization.
+
+**Challenge: Parallel Data Fetching Performance**
+
+TRACE needs entities, invalidations, provenance, and user info for each memory. Sequential queries would multiply latency. Solution: Used `Promise.all` to fetch four data sources simultaneously - `getMemoryAboutEntities`, `getMemoryInvalidates`, `getMemoryProvenance`, `getUser`. Added entity inclusion filtering - only entities actually referenced by returned memories appear in output, not all anchor entities from earlier phases.
+
+**Challenge: Two-Hop Invalidation Chains**
+
+Memories can invalidate other memories, which themselves invalidated earlier memories. Users need the full chain to understand why information is stale. Solution: Implemented recursive invalidation tracking - if Memory A invalidates Memory B (which invalidated Memory C), the output includes both hops with normalized content and timestamps. Added user entity personalization - substitutes actual user name for "User" entity and sorts entities with user first, then by frequency in returned memories.
+
+**Components Built**:
+
+- `src/core/retrieval/phases/trace.ts` - Parallel provenance with two-hop invalidations
+
+**Testing & Validation**:
+
+- Verified z-score normalization handles edge case where one search mode returns 0 results
+- Tested adaptive lambda: queries with 0.53 score gap use λ=0.9 (relevance), 0.04 gap uses λ=0.3 (diversity)
+- Validated MMR produces 1 high-level summary + 3 distinct milestone memories instead of 4 similar status reports
+- Confirmed parallel TRACE fetching vs sequential queries (measured improvement in wall-clock time)
+- Tested two-hop invalidation chains correctly reconstruct Memory A → B → C relationships
 
 ---
 
