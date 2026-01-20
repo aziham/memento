@@ -834,6 +834,18 @@ The `memento_note` tool should only be called after the user explicitly confirms
 - Confirmed consolidation errors are properly wrapped in `McpError` format
 - Tested skipped notes return clear reason to user
 
+**Unit Tests Added**:
+
+- `tests/proxy/injection/formatter.test.ts` - XML formatter tests
+  - Current-date header inclusion (YYYY-MM-DD format)
+  - Query element formatting
+  - Entity formatting (attributes, descriptions, self-closing tags)
+  - Entity filtering (well-known entities, zero memoryCount)
+  - User entity type substitution
+  - Memory formatting (content, valid_since, about section, provenance)
+  - Invalidation chains (single hop, two-hop chains, null dates)
+  - Date formatting (preserves original date, avoids UTC conversion)
+
 ### Day 15 (Jan 21) - Server Module [1h]
 
 **Morning (10:00-11:00)**: Client Initialization & Application Composition [1h]
