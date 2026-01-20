@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~98 hours (ongoing)
+**Total Time**: ~105 hours (ongoing)
 
 ## Overview
 
@@ -671,6 +671,70 @@ Memories can invalidate other memories, which themselves invalidated earlier mem
 - Validated MMR produces 1 high-level summary + 3 distinct milestone memories instead of 4 similar status reports
 - Confirmed parallel TRACE fetching vs sequential queries (measured improvement in wall-clock time)
 - Tested two-hop invalidation chains correctly reconstruct Memory A → B → C relationships
+
+### Day 14 (Jan 20) - Proxy Layer [7h]
+
+**Morning (10:00-13:00)**: Types, Config, Upstream Clients [3h]
+
+Built the transparent proxy layer that intercepts LLM requests, injects memories, and forwards to upstream providers.
+
+**Challenge: Transparent Request Handling with Protocol Reuse**
+
+The proxy needs to support multiple upstream providers (OpenAI, Anthropic, Ollama, and custom providers). Custom providers can speak either OpenAI or Anthropic protocol. The challenge was to avoid duplicating the forwarding logic for custom providers while keeping the code clean.
+
+Solution: Used delegation pattern in `CustomProxyClient` - it wraps either `OpenAIProxyClient` or `AnthropicProxyClient` based on the configured protocol. This means custom providers automatically get the correct endpoint paths and request formatting without writing provider-specific code. The proxy remains transparent - it only injects memories into the request body, never modifying headers, authentication, or other request properties. All upstream-specific logic is isolated in the client classes.
+
+**Components Built**:
+
+- `src/proxy/types.ts` - Message formats (OpenAI/Anthropic), client interfaces
+- `src/proxy/config.ts` - Endpoint paths, base URLs, route-provider mappings
+- `src/proxy/upstream/openai.ts` - OpenAI client forwarding to `/v1/chat/completions`
+- `src/proxy/upstream/anthropic.ts` - Anthropic client forwarding to `/v1/messages`
+- `src/proxy/upstream/ollama.ts` - Ollama client with 3 endpoints (OpenAI-compatible, native chat, generate)
+- `src/proxy/upstream/custom.ts` - Custom client using protocol delegation
+- `src/proxy/upstream/factory.ts` - Factory for creating provider clients
+
+**Afternoon (15:30-18:00)**: Injection System & Route Handlers [2.5h]
+
+Built the memory injection system and route orchestration.
+
+**Challenge: Defensive Query Extraction from Last User Message**
+
+The proxy needs to extract the user's query to retrieve relevant memories, but request bodies can contain multiple messages with different roles (system, user, assistant, tool). The challenge was to reliably extract only the actual user query that should trigger memory retrieval, while being defensive about edge cases.
+
+Solution: Implemented backwards-scanning in `extractQueryFromBody()` - iterates from the end of the messages array backwards until it finds a message with `role === 'user'`. This ensures we get the most recent user message, which represents the current query. For content extraction, the code handles both string and ContentBlock[] formats defensively - filters out system tags, skips past any injected `</memento>` blocks, and only extracts the actual user content. This prevents retrieving memories based on system instructions or previously injected content.
+
+**Challenge: LLM-Optimized XML Formatting for Reasoning**
+
+The retrieval pipeline returns structured data (entities, memories, invalidations, provenance), but the LLM needs this formatted in a way that enables reasoning about temporal relationships, entity connections, and information validity. The challenge was to design an XML format that provides meaningful context without overwhelming the LLM with noise.
+
+Solution: Designed a hierarchical XML structure in `formatRetrievalAsXML()` that filters out well-known entities (reduces noise), uses attributes for metadata (dates, types) and elements for content (natural for long text), includes `<about>` sections linking memories to entities, shows `<invalidates>` chains with `valid_since` and `valid_until` dates enabling temporal reasoning, and includes `<extracted_from>` provenance with timestamps showing where memories came from. No XML escaping - LLMs read as structured text, not parsed XML. This gives the LLM enough context to infer relationships that aren't explicitly stored - like "this memory about React is outdated because it was invalidated on 2024-03-15, and here's the newer information."
+
+**Components Built**:
+
+- `src/proxy/injection/formatter.ts` - XML formatter for retrieval output
+- `src/proxy/injection/inject.ts` - Generic injection handling string and ContentBlock[] formats
+- `src/proxy/injection/index.ts` - Injection module exports with memento tag wrapper
+- `src/proxy/routes/query.ts` - Query extraction with backwards-scanning and system tag filtering
+- `src/proxy/routes/memory.ts` - Memory injection orchestration with graceful degradation
+- `src/proxy/routes/handlers.ts` - Route handlers for OpenAI, Anthropic, Ollama endpoints
+- `src/proxy/routes/index.ts` - Route creation and mounting
+
+**Evening (19:00)**: Public API [0.5h]
+
+Completed the proxy module with a clean public API.
+
+**Components Built**:
+
+- `src/proxy/index.ts` - Barrel file exporting routes, clients, types, config, injection utilities
+
+**Testing & Validation**:
+
+- Verified protocol delegation works for custom providers
+- Tested backwards-scanning finds correct user message in complex conversations
+- Validated injection handles both string and ContentBlock[] formats
+- Confirmed XML formatting includes all necessary context for LLM reasoning
+- Tested graceful degradation when retrieval fails
 
 ---
 
