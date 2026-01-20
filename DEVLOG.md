@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~105 hours (ongoing)
+**Total Time**: ~106 hours (ongoing)
 
 ## Overview
 
@@ -672,7 +672,7 @@ Memories can invalidate other memories, which themselves invalidated earlier mem
 - Confirmed parallel TRACE fetching vs sequential queries (measured improvement in wall-clock time)
 - Tested two-hop invalidation chains correctly reconstruct Memory A → B → C relationships
 
-### Day 14 (Jan 20) - Proxy Layer [7h]
+### Day 14 (Jan 20) - Proxy Layer & MCP Server [8h]
 
 **Morning (10:00-13:00)**: Types, Config, Upstream Clients [3h]
 
@@ -735,6 +735,38 @@ Completed the proxy module with a clean public API.
 - Validated injection handles both string and ContentBlock[] formats
 - Confirmed XML formatting includes all necessary context for LLM reasoning
 - Tested graceful degradation when retrieval fails
+
+**Evening (23:00)**: MCP Server [1h]
+
+Built the Model Context Protocol server exposing the `memento_note` tool for saving notes to the knowledge graph.
+
+**Challenge: Preventing Premature Tool Calls**
+
+The `memento_note` tool should only be called after the user explicitly confirms they want to save a note. The LLM needs to draft the note, show it to the user, wait for confirmation, and only then call the tool. However, LLMs are eager to call tools immediately when they seem relevant - they don't naturally wait for confirmation.
+
+**Attempted Solutions:**
+
+- Tried detailed tool descriptions explaining the workflow
+- Tried adding examples showing the draft → confirm → save pattern
+- Tried strict language like "MUST confirm" and "DO NOT call without confirmation"
+- None of these worked reliably - the LLM would still call the tool prematurely
+
+**Final Solution:** Added a `confirmed` boolean parameter to the tool schema. The tool handler rejects calls with `confirmed=false`, returning "Please confirm with the user before saving." Combined with the workflow description and examples, this creates a two-layer defense: (1) the schema guides the LLM to include the parameter, (2) the handler enforces the rule by rejecting unconfirmed calls. This took several rounds of testing and rewriting different approaches, but the combination of descriptive guidance + enforced parameter worked flawlessly.
+
+**Key insight:** Tool descriptions alone can't enforce behavior - you need a parameter that the LLM must set, combined with handler-level validation. The parameter makes the confirmation explicit in the tool call, turning implicit workflow guidance into an explicit API contract.
+
+**Components Built**:
+
+- `src/mcp/server.ts` - MCP server with `memento_note` tool, stateless HTTP transport
+- `src/mcp/index.ts` - Module exports
+
+**Testing & Validation**:
+
+- Tested confirmation flow: LLM drafts note, waits for user confirmation, then calls with `confirmed=true`
+- Verified rejection of unconfirmed calls returns helpful message
+- Validated stateless transport creates/closes transport per request
+- Confirmed consolidation errors are properly wrapped in `McpError` format
+- Tested skipped notes return clear reason to user
 
 ---
 
