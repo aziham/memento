@@ -2,7 +2,7 @@
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
 **Duration**: January 5-23, 2026  
-**Total Time**: ~106 hours (ongoing)
+**Total Time**: ~107 hours (ongoing)
 
 ## Overview
 
@@ -767,6 +767,38 @@ The `memento_note` tool should only be called after the user explicitly confirms
 - Validated stateless transport creates/closes transport per request
 - Confirmed consolidation errors are properly wrapped in `McpError` format
 - Tested skipped notes return clear reason to user
+
+### Day 15 (Jan 21) - Server Module [1h]
+
+**Morning (10:00-11:00)**: Client Initialization & Application Composition [1h]
+
+Built the server module that wires together all components - the composition root of the application.
+
+**Challenge: Lazy Client Initialization with Promise Deduplication**
+
+The server needs to initialize three clients (Graph, Embedding, LLM) that involve async operations (DB connection, schema creation). Multiple concurrent requests during startup could trigger multiple initialization attempts, wasting resources and potentially causing race conditions.
+
+**Solution:** Implemented a two-level caching strategy in `getClients()`. First level: check if `clients` is already initialized and return immediately. Second level: check if initialization is in progress (`initPromise`) and await the same promise. This ensures that even if 10 requests arrive simultaneously during startup, only one initialization runs and all requests share the result. The pattern is: `if (clients) return clients; if (!initPromise) initPromise = init(); return await initPromise;`
+
+**Key insight:** Caching the promise itself (not just the result) is crucial for handling concurrent requests during initialization. Without promise caching, multiple requests would each start their own initialization.
+
+**Components Built**:
+
+- `src/server/clients.ts` - Lazy client initialization with promise deduplication, environment variable fallbacks
+- `src/server/proxy.ts` - Proxy route mounting with stateless client creation
+- `src/server/mcp.ts` - MCP endpoint handler with lazy initialization
+- `src/server/index.ts` - Hono app composition, mounts proxy routes and MCP endpoint
+
+**Testing & Validation**:
+
+- Verified promise deduplication: concurrent requests share initialization
+- Tested lazy initialization: clients only created on first request
+- Confirmed schema initialization with correct vector dimensions
+- Validated proxy routes mount correctly (4 endpoints)
+- Tested MCP endpoint handler creation and caching
+- Verified environment variable fallbacks work for local development
+
+**Important:** This fixes the broken `@/server/clients` imports in Proxy and MCP modules.
 
 ---
 
