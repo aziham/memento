@@ -1,4 +1,5 @@
 import type { ProxyClient } from './types';
+import { sanitizeHeaders } from './utils';
 
 const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
 
@@ -12,7 +13,7 @@ export class AnthropicProxyClient implements ProxyClient {
   async chat(body: unknown, headers: Headers): Promise<Response> {
     return fetch(`${this.baseUrl}/v1/messages`, {
       method: 'POST',
-      headers,
+      headers: sanitizeHeaders(headers),
       body: JSON.stringify(body)
     });
   }

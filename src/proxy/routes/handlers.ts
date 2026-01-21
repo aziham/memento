@@ -43,6 +43,7 @@ export function createOpenAIHandler(ctx: HandlerContext) {
     const finalBody = await injectMemoriesIfAvailable(body, ctx.getClients);
 
     const response = await ctx.proxyClient.chat(finalBody, c.req.raw.headers);
+
     return new Response(response.body, {
       status: response.status,
       headers: response.headers

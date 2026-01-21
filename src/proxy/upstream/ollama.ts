@@ -1,4 +1,5 @@
 import type { ExtendedProxyClient } from './types';
+import { sanitizeHeaders } from './utils';
 
 const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
 
@@ -13,7 +14,7 @@ export class OllamaProxyClient implements ExtendedProxyClient {
     // Default to OpenAI-compatible endpoint
     return fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: 'POST',
-      headers,
+      headers: sanitizeHeaders(headers),
       body: JSON.stringify(body)
     });
   }
@@ -21,7 +22,7 @@ export class OllamaProxyClient implements ExtendedProxyClient {
   async nativeChat(body: unknown, headers: Headers): Promise<Response> {
     return fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
-      headers,
+      headers: sanitizeHeaders(headers),
       body: JSON.stringify(body)
     });
   }
@@ -29,7 +30,7 @@ export class OllamaProxyClient implements ExtendedProxyClient {
   async generate(body: unknown, headers: Headers): Promise<Response> {
     return fetch(`${this.baseUrl}/api/generate`, {
       method: 'POST',
-      headers,
+      headers: sanitizeHeaders(headers),
       body: JSON.stringify(body)
     });
   }
