@@ -12,6 +12,7 @@ import { createGraphClient } from '@/providers/graph';
 import type { GraphClient } from '@/providers/graph/types';
 import { createLLMClient } from '@/providers/llm/factory';
 import type { LLMClient } from '@/providers/llm/types';
+import { buildStartupInfo, displayStartup } from '@/utils/startup';
 
 /**
  * Shared clients used by proxy and MCP endpoints.
@@ -68,6 +69,10 @@ async function initializeClients(): Promise<Clients> {
     apiKey: config.llm.apiKey,
     baseUrl: config.llm.baseUrl
   });
+
+  // Display startup info after successful initialization
+  const startupInfo = buildStartupInfo(config);
+  await displayStartup(config, startupInfo);
 
   return { graphClient, embeddingClient, llmClient };
 }
