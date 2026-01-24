@@ -878,6 +878,37 @@ The server needs to initialize three clients (Graph, Embedding, LLM) that involv
 
 **Important:** This fixes the broken `@/server/clients` imports in Proxy and MCP modules.
 
+### Day 15.5 (Jan 24) - Integration Tests [1h]
+
+**Afternoon (15:00-16:00)**: Integration Test Suite [1h]
+
+Added integration tests for the retrieval and consolidation pipelines with mocked dependencies.
+
+**Challenge: Non-Deterministic LLM Call Order**
+
+The consolidation pipeline runs Branch A (context retrieval) and Branch B (entity/memory extraction) in parallel. This means the order of LLM calls is non-deterministic, making sequential mock responses unreliable.
+
+Solution: Built a type-based mock system that matches responses by inspecting the system prompt content. The mock LLM client identifies which agent is calling (entity extractor, entity resolver, memory extractor, memory resolver, HyDE generator) and returns the appropriate pre-configured response regardless of call order.
+
+**Components Built**:
+
+- `tests/helpers/mocks.ts` - Mock factories for GraphClient, EmbeddingClient, LLMClient
+- `tests/integration/retrieval.test.ts` - 5 tests for full retrieval pipeline
+- `tests/integration/consolidation.test.ts` - 4 tests for consolidation flow
+- `tests/integration/invalidation.test.ts` - 4 tests for memory invalidation scenarios
+
+**Test Coverage**:
+
+- Retrieval: query → memories with proper structure, empty graph handling, formatted output
+- Consolidation: entity/memory extraction, entity matching vs creation, parallel branch execution
+- Invalidation: contradiction detection (INVALIDATE), duplicate detection (SKIP), independent addition (ADD)
+
+**Testing & Validation**:
+
+- All 13 new integration tests pass
+- Total test count: 202 unit + 13 integration = 215 tests
+- Mock system correctly handles parallel branch execution
+
 ### Day 16 (Jan 25) - Utilities & Polish [3h]
 
 **Morning (00:30-01:00)**: Logging System [0.5h]
