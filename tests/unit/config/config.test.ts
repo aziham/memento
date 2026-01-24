@@ -6,8 +6,8 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { VALID_CUSTOM_PROVIDER_CONFIG, VALID_MINIMAL_CONFIG } from '@tests/helpers/fixtures';
 import { configSchema } from '@/config/schema';
-import { VALID_CUSTOM_PROVIDER_CONFIG, VALID_MINIMAL_CONFIG } from '../helpers/fixtures';
 
 describe('configSchema', () => {
   describe('valid configurations', () => {

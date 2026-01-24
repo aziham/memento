@@ -5,13 +5,13 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { normalizeL2 } from '@/providers/embedding/utils';
 import {
   NORMALIZED_VECTOR,
   UNIT_VECTOR_X,
   UNNORMALIZED_VECTOR,
   ZERO_VECTOR
-} from '../../helpers/fixtures';
+} from '@tests/helpers/fixtures';
+import { normalizeL2 } from '@/providers/embedding/utils';
 
 describe('normalizeL2', () => {
   test('normalizes a non-unit vector to unit length', () => {

@@ -5,10 +5,10 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { createScoredMemory } from '@tests/helpers/fixtures';
 import { computeAdaptiveLambda, mmrRerank } from '@/core/retrieval/algorithms/mmr';
 import { createConfig } from '@/core/retrieval/config';
 import type { ScoredMemory } from '@/core/retrieval/types';
-import { createScoredMemory } from '../../../helpers/fixtures';
 
 const config = createConfig();
 

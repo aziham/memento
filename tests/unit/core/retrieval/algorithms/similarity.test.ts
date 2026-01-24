@@ -5,8 +5,8 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { UNIT_VECTOR_X, UNIT_VECTOR_Y, ZERO_VECTOR } from '@tests/helpers/fixtures';
 import { computeCosineSimilarity } from '@/core/retrieval/algorithms/similarity';
-import { UNIT_VECTOR_X, UNIT_VECTOR_Y, ZERO_VECTOR } from '../../../helpers/fixtures';
 
 describe('computeCosineSimilarity', () => {
   test('returns 1 for identical vectors', () => {

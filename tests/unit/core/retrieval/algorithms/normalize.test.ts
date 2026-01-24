@@ -6,15 +6,15 @@
 
 import { describe, expect, test } from 'bun:test';
 import {
-  alignScoreDistribution,
-  normalizeToUnitRange
-} from '@/core/retrieval/algorithms/normalize';
-import {
   FULLTEXT_SCORES,
   IDENTICAL_SCORES,
   SINGLE_SCORE,
   VECTOR_SCORES
-} from '../../../helpers/fixtures';
+} from '@tests/helpers/fixtures';
+import {
+  alignScoreDistribution,
+  normalizeToUnitRange
+} from '@/core/retrieval/algorithms/normalize';
 
 describe('alignScoreDistribution', () => {
   const targetDistribution = { mean: 0.5, standardDeviation: 0.2 };
