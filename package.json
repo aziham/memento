@@ -3,8 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
-    "start": "bun run src/index.ts",
+    "dev": "bun run --hot src/index.ts 2>&1 | grep -v 'Started development server'",
+    "start": "bun run src/index.ts 2>&1 | grep -v 'Started development server'",
     "test": "bun test",
     "check": "bun run check:biome && bun run check:prettier && bun run typecheck",
     "check:biome": "bunx biome check --write .",
