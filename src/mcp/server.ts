@@ -12,6 +12,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { type ConsolidationOptions, consolidate } from '@/core';
 import type { Clients } from '@/server/clients';
+import { logNoteStorageResult, logNoteStorageStart } from '@/utils/logger';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -108,11 +109,17 @@ function createNoteHandler(clients: Clients, options: ConsolidationOptions) {
     }
 
     try {
+      // Log the start of the operation
+      logNoteStorageStart(content);
+
       const output = await consolidate(
         { content, timestamp: new Date().toISOString() },
         { graphClient, embeddingClient, llmClient },
         options
       );
+
+      // Log the result
+      logNoteStorageResult(output);
 
       if (output.skipped) {
         return {

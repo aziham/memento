@@ -9,6 +9,7 @@ import { type RetrievalOutput, retrieve } from '@/core';
 import { formatRetrievalAsXML, injectIntoBody, wrapInMementoTags } from '@/proxy/injection';
 import type { AnthropicRequestBody, OpenAIRequestBody } from '@/proxy/types';
 import type { Clients } from '@/server/clients';
+import { logRetrievalResult, logRetrievalStart } from '@/utils/logger';
 import { extractQueryFromBody } from './query';
 
 /**
@@ -38,6 +39,9 @@ export async function injectMemoriesIfAvailable<T extends OpenAIRequestBody | An
       return body;
     }
 
+    // Log the start of retrieval
+    logRetrievalStart(query);
+
     // Generate query embedding for vector search
     const queryEmbedding = await clients.embeddingClient.embed(query);
 
@@ -50,6 +54,11 @@ export async function injectMemoriesIfAvailable<T extends OpenAIRequestBody | An
         llmClient: clients.llmClient
       }
     )) as RetrievalOutput;
+
+    // Log the result
+    if (result.memories.length > 0) {
+      logRetrievalResult(result);
+    }
 
     // Skip injection if no memories found
     if (result.memories.length === 0) {
