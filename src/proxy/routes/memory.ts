@@ -6,6 +6,7 @@
  */
 
 import { type RetrievalOutput, retrieve } from '@/core';
+import { shouldSkipRetrieval } from '@/proxy/filters';
 import { formatRetrievalAsXML, injectIntoBody, wrapInMementoTags } from '@/proxy/injection';
 import type { AnthropicRequestBody, OpenAIRequestBody } from '@/proxy/types';
 import type { Clients } from '@/server/clients';
@@ -35,7 +36,7 @@ export async function injectMemoriesIfAvailable<T extends OpenAIRequestBody | An
     const clients = await getClients();
     const query = extractQueryFromBody(body);
 
-    if (!query) {
+    if (!query || shouldSkipRetrieval(query)) {
       return body;
     }
 
