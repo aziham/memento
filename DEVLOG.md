@@ -878,6 +878,66 @@ The server needs to initialize three clients (Graph, Embedding, LLM) that involv
 
 **Important:** This fixes the broken `@/server/clients` imports in Proxy and MCP modules.
 
+### Day 16 (Jan 25) - Utilities & Polish [3h]
+
+**Morning (00:30-01:00)**: Logging System [0.5h]
+
+Built a semantic logging system for STORE and RECALL operations.
+
+**Challenge: Visual Clarity for Memory Operations**
+
+Console output needed to show memory operations in a way that's immediately understandable - what memories were added, skipped, or replaced, and why. Raw data dumps are hard to parse quickly.
+
+Solution: Designed an action-oriented logging format that uses verbs (Added, Replaced, Skipped) with color-coded prefixes. `+ Added` in green for new memories, `- Replaced` in red for invalidations, `= Skipped` in yellow for duplicates. Entity summary shows which entities were matched vs created. Each operation is timestamped for debugging.
+
+**Components Built**:
+
+- `src/utils/colors.ts` - ANSI color codes and helper functions for terminal styling
+- `src/utils/logger.ts` - STORE/RECALL logging with semantic formatting
+
+**Morning (00:55-01:00)**: Retrieval Skip Filters [0.1h]
+
+Built a filter system to skip internal client requests that shouldn't trigger memory retrieval.
+
+**Challenge: Filtering Internal Client Requests**
+
+AI coding assistants like Continue.dev send internal requests for title generation (e.g., "Reply with a title for this conversation"). These shouldn't trigger memory retrieval - they're not real user queries.
+
+Solution: Pattern-matching filter with skip patterns organized by client. Currently supports Continue.dev's title generation pattern. Extensible for other clients (Cursor, Cody, etc.) as we discover their internal request patterns.
+
+**Components Built**:
+
+- `src/proxy/filters/skip-patterns.ts` - Skip patterns organized by client
+- `src/proxy/filters/index.ts` - `shouldSkipRetrieval()` function
+
+**Morning (01:00)**: Startup Banner & Display [0.5h]
+
+Built an ASCII art banner and animated startup display.
+
+**Challenge: Professional Server Startup Experience**
+
+The server needed a visually appealing startup that shows initialization progress and configuration details, making it easy to verify the server started correctly.
+
+Solution: ASCII art banner with dual-color styling (white borders, gray fill). Animated initialization sequence showing each step with checkmarks. Server info display with proxy endpoints, provider details, and connection info. All output uses box-drawing characters for a polished look.
+
+**Components Built**:
+
+- `src/utils/banner.ts` - ASCII art generation with border/fill color separation
+- `src/utils/startup.ts` - Animated initialization display with server info
+
+**Unit Tests Added**:
+
+- `tests/utils/colors.test.ts` - Color utility tests
+  - ANSI code constants verification
+  - Single color application with reset
+  - Multiple style chaining
+  - Convenience function wrappers (c.red, c.dim, etc.)
+- `tests/proxy/filters/skip-patterns.test.ts` - Skip filter tests
+  - Pattern matching for known skip patterns
+  - Case insensitivity
+  - Non-matching queries pass through
+  - Empty query handling
+
 ---
 
 ## Technical Decisions & Rationale
