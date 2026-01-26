@@ -25,6 +25,11 @@ import type { EntityData, InvalidatedMemory, MemoryData, RetrievalOutput } from 
 export function formatRetrievalAsXML(output: RetrievalOutput): string {
   const lines: string[] = [];
 
+  // Current date for temporal calculations
+  const today = new Date().toISOString().split('T')[0];
+  lines.push(`<current-date>${today}</current-date>`);
+  lines.push('');
+
   // Query
   lines.push(`<query>${output.query}</query>`);
   lines.push('');
