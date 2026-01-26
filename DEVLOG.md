@@ -938,6 +938,22 @@ Solution: ASCII art banner with dual-color styling (white borders, gray fill). A
   - Non-matching queries pass through
   - Empty query handling
 
+### Day 17 (Jan 26) - Temporal Context Enhancement [0.25h]
+
+**Morning (01:30)**: Current-Date Header [0.25h]
+
+Added the `<current-date>` header to the memento XML block.
+
+**Challenge: Temporal Reasoning Without Current Date**
+
+The LLM receives memories with `valid_since` and `valid_until` dates but has no reference point for "today." Without knowing the current date, it can't determine if a memory is recent or from years ago, or calculate how long ago something was invalidated.
+
+Solution: Added a simple `<current-date>YYYY-MM-DD</current-date>` element at the start of the memento block. This gives the LLM a temporal anchor for reasoning about memory freshness and calculating relative time differences.
+
+**Components Modified**:
+
+- `src/proxy/injection/formatter.ts` - Added current-date header generation
+
 ---
 
 ## Technical Decisions & Rationale
