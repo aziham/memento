@@ -36,7 +36,10 @@ function createMockMemoryData(overrides?: Partial<MemoryData>): MemoryData {
     source: overrides?.source ?? 'vector',
     about: overrides?.about ?? ['TypeScript'],
     aboutEntityIds: overrides?.aboutEntityIds ?? ['entity-1'],
-    validAt: 'validAt' in (overrides ?? {}) ? overrides!.validAt : '2026-01-15T10:00:00.000Z',
+    validAt:
+      overrides && 'validAt' in overrides
+        ? (overrides.validAt ?? null)
+        : '2026-01-15T10:00:00.000Z',
     invalidates: overrides?.invalidates,
     extractedFrom: overrides?.extractedFrom
   };
