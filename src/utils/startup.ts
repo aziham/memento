@@ -108,9 +108,6 @@ export async function displayStartup(config: Config, info: StartupInfo): Promise
 
   // Final divider
   console.log(`\n  ${c.dim(DIVIDER)}\n`);
-
-  // Ready message
-  console.log(`  ${c.brightCyan('Ready to remember.')}\n`);
 }
 
 /**
