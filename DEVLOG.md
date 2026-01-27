@@ -1,8 +1,8 @@
 # Development Log - Memento
 
 **Project**: Memento - Transparent Memory Layer for AI Agents  
-**Duration**: January 5-23, 2026  
-**Total Time**: ~107 hours (ongoing)
+**Duration**: January 5-31, 2026  
+**Total Time**: ~118 hours
 
 ## Overview
 
@@ -984,6 +984,47 @@ Solution: Added a simple `<current-date>YYYY-MM-DD</current-date>` element at th
 **Components Modified**:
 
 - `src/proxy/injection/formatter.ts` - Added current-date header generation
+
+### Day 18 (Jan 27) - Project Documentation [7h]
+
+**Morning/Afternoon/Evening (Various)**: Comprehensive README [7h]
+
+Wrote the complete project README (1,611 lines, 80KB) covering all aspects of Memento.
+
+**Challenge: Explaining Complex Technical Concepts Accessibly**
+
+The README needed to explain sophisticated algorithms (SEM-PPR, HyDE, MMR) and architectural decisions to both technical and non-technical audiences. Too much detail overwhelms, too little leaves readers confused.
+
+Solution: Structured narrative approach using the Memento film theme as a hook. Started with the problem (anterograde amnesia, attention decay) using visual ASCII diagrams, then explained the solution with brain analogies. Technical deep-dives came later with clear section breaks, allowing readers to choose their depth.
+
+**Challenge: Balancing Brevity with Completeness**
+
+Needed to cover installation, integration, architecture, and technical details without creating a wall of text.
+
+Solution: Progressive disclosure through clear TOC and section hierarchy. Quick Start gets users running in 5 minutes. Integration Guide provides copy-paste configs. Key Features explains "what" and "why." Architecture dives deep for contributors. Each section stands alone but links to related content.
+
+**Content Sections**:
+
+- Problem statement (The Condition) with attention decay visualization
+- Solution architecture (The Cure) with human memory analogy
+- Quick Start with prerequisites, installation, verification
+- Integration guides for Continue.dev, Cherry Studio, and generic clients
+- Technical deep-dives on retrieval (5-phase pipeline, SEM-PPR story) and consolidation (2-branch pipeline, HyDE)
+- Architecture overview and technology stack
+- Comparison table (Memento vs system prompts)
+
+**Assets Created**:
+
+- 4 demo GIFs showing real usage (Continue.dev, Cherry Studio, Neo4j Browser, startup)
+- ASCII diagrams for attention decay and system architecture
+- Code examples for configuration and integration
+
+**Testing & Validation**:
+
+- Verified all asset references exist
+- Checked all internal links work
+- Validated code examples are accurate
+- Reviewed for consistency with actual implementation
 
 ---
 
