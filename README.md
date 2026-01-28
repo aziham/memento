@@ -18,6 +18,14 @@
   </a>
 </p>
 
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/b3d71078-3878-496c-bb92-c1ee9f5e39a7" controls width="800"></video>
+</p>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=IJJFvG-js7E">Watch the full demo on YouTube</a>
+</p>
+
 ---
 
 ## Table of Contents
@@ -42,10 +50,7 @@
 - [Architecture](#architecture)
   - [System Overview](#system-overview)
   - [Technology Stack](#technology-stack)
-- [Built with Kiro CLI](#built-with-kiro-cli)
 - [Why Memento?](#why-memento)
-- [License](#license)
-- [Credits](#credits)
 
 ---
 
@@ -376,7 +381,7 @@ Your client not listed? If it supports custom endpoints and MCP, it works with M
 
 Check your client's documentation for where to configure these settings.
 
-**Coming in v0.2:** Support for clients that don't expose `baseURL` configuration (like **Kiro**) through their plugin/hook systems. These integrations will intercept prompts and inject memories via client-specific extensions rather than HTTP proxy.
+**Coming in v0.2:** Support for clients that don't expose `baseURL` configuration through their plugin/hook systems. These integrations will intercept prompts and inject memories via client-specific extensions rather than HTTP proxy.
 
 ---
 
@@ -1555,16 +1560,6 @@ await graphClient.executeTransaction(async (tx) => {
 
 ---
 
-## Built with Kiro CLI
-
-This project was developed using **Kiro CLI** for AI-assisted development:
-
-- Steering documents define architecture
-- Custom prompts automate workflows
-- Consistent codebase through AI collaboration
-
----
-
 ## Why Memento?
 
 **Memento vs Prompt Engineering (System Prompts)**
@@ -1580,21 +1575,7 @@ This project was developed using **Kiro CLI** for AI-assisted development:
 
 ---
 
-## License
-
-Apache License 2.0 - see [LICENSE](LICENSE) file for details.
-
----
-
-## Credits
-
-Built for the **Dynamous + Kiro Hackathon** (January 2026).
-
-Inspired by the film _Memento_ (2000) and the real science of human memory systems.
-
-Developed with [Kiro CLI](https://kiro.ai) for AI-assisted development.
-
----
+## Remember Sammy Jankis?
 
 > _"Memory can change the shape of a room; it can change the color of a car. And memories can be distorted. They're just an interpretation, they're not a record, and they're irrelevant if you have the facts."_
 >
@@ -1607,7 +1588,5 @@ But unlike Leonard, your AI agent doesn't need tattoos and Polaroids.
 **It needs Memento.**
 
 Not facts OR memories. **Both.** The precision of a knowledge graph. The intuition of human recall. The consistency of a database. The context of lived experience.
-
-**Remember Sammy Jankis?**
 
 Your AI agent will.
