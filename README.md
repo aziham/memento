@@ -3,11 +3,8 @@
 </p>
 
 <h1 align="center">Memento</h1>
-<h2 align="center">The Cure for AI Amnesia</h2>
 
-<p align="center">
-  <em>Remember Sammy Jankis.</em>
-</p>
+<h2 align="center">Memory that thinks, not just remembers!</h2>
 
 <p align="center">
   <a href="https://github.com/aziham/memento/stargazers">
@@ -446,12 +443,21 @@ Memories are injected as structured XML for maximum LLM comprehension:
 ```xml
 <memento>
 <current-date>2025-06-14</current-date>
+
 <query>What editor do I use?</query>
+
 <entities>
   <entity name="Zed" type="Technology">
     <description>Modern code editor written in Rust</description>
   </entity>
 </entities>
+
+<notes>
+  <note id="note-01" timestamp="2025-06-01">
+    <content>I switched to Zed for editing</content>
+  </note>
+</notes>
+
 <memories>
   <memory valid_since="2025-06-01">
     <content>USER uses Zed as their primary code editor</content>
@@ -459,9 +465,7 @@ Memories are injected as structured XML for maximum LLM comprehension:
       <entity>Zed</entity>
       <entity>USER</entity>
     </about>
-    <extracted_from timestamp="2025-06-01">
-      <content>I switched to Zed for editing</content>
-    </extracted_from>
+    <extracted_from note_id="note-01"/>
   </memory>
 </memories>
 </memento>
