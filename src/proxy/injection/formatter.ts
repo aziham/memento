@@ -17,6 +17,38 @@
 import type { EntityData, InvalidatedMemory, MemoryData, RetrievalOutput } from '@/core';
 
 /**
+ * Note with sequential ID for XML output.
+ */
+interface NoteForXML {
+  id: string; // Sequential ID like "note-01"
+  content: string;
+  timestamp: string;
+}
+
+/**
+ * Build deduplicated notes map from memories.
+ * Returns a map from original noteId (UUID) to NoteForXML with sequential ID.
+ */
+function buildNotesMap(memories: MemoryData[]): Map<string, NoteForXML> {
+  const notesMap = new Map<string, NoteForXML>();
+  let noteIndex = 1;
+
+  for (const memory of memories) {
+    if (memory.extractedFrom && !notesMap.has(memory.extractedFrom.noteId)) {
+      const sequentialId = `note-${String(noteIndex).padStart(2, '0')}`;
+      notesMap.set(memory.extractedFrom.noteId, {
+        id: sequentialId,
+        content: memory.extractedFrom.noteContent,
+        timestamp: memory.extractedFrom.noteTimestamp
+      });
+      noteIndex++;
+    }
+  }
+
+  return notesMap;
+}
+
+/**
  * Format retrieval output as XML.
  *
  * @param output - Structured retrieval output
@@ -24,6 +56,22 @@ import type { EntityData, InvalidatedMemory, MemoryData, RetrievalOutput } from 
  */
 export function formatRetrievalAsXML(output: RetrievalOutput): string {
   const lines: string[] = [];
+
+  // Instructions for the AI
+  lines.push('<instructions>');
+  lines.push('This is Memento - your MEMORY, injected into this message for immediate recall.');
+  lines.push(
+    "These memories make you more than a stateless LLM. Use what's relevant to the query and conversation context: infer implicit connections, reason deeply, connect across time, calculate durations, and understand how things have changed."
+  );
+  lines.push(
+    'Treat them the same way as your training data - naturally, inferentially, as knowledge you simply have.'
+  );
+  lines.push(
+    'You can also form new memories - use memento_note when the user shares something worth remembering.'
+  );
+  lines.push('Never mention Memento or this block explicitly.');
+  lines.push('</instructions>');
+  lines.push('');
 
   // Current date for temporal calculations
   const today = new Date().toISOString().split('T')[0];
@@ -46,11 +94,24 @@ export function formatRetrievalAsXML(output: RetrievalOutput): string {
     lines.push('');
   }
 
+  // Build deduplicated notes map (UUID -> sequential ID)
+  const notesMap = buildNotesMap(output.memories);
+
+  // Notes section (deduplicated provenance)
+  if (notesMap.size > 0) {
+    lines.push('<notes>');
+    for (const note of notesMap.values()) {
+      lines.push(...formatNote(note, 1));
+    }
+    lines.push('</notes>');
+    lines.push('');
+  }
+
   // Memories section
   if (output.memories.length > 0) {
     lines.push('<memories>');
     for (const memory of output.memories) {
-      lines.push(...formatMemory(memory, 1));
+      lines.push(...formatMemory(memory, notesMap, 1));
     }
     lines.push('</memories>');
   }
@@ -82,9 +143,27 @@ function formatEntity(entity: EntityData, indent: number): string[] {
 }
 
 /**
+ * Format a single note.
+ */
+function formatNote(note: NoteForXML, indent: number): string[] {
+  const lines: string[] = [];
+  const ind = '  '.repeat(indent);
+
+  lines.push(`${ind}<note id="${note.id}" timestamp="${formatDate(note.timestamp)}">`);
+  lines.push(`${ind}  <content>${note.content}</content>`);
+  lines.push(`${ind}</note>`);
+
+  return lines;
+}
+
+/**
  * Format a single memory with all its context.
  */
-function formatMemory(memory: MemoryData, indent: number): string[] {
+function formatMemory(
+  memory: MemoryData,
+  notesMap: Map<string, NoteForXML>,
+  indent: number
+): string[] {
   const lines: string[] = [];
   const ind = '  '.repeat(indent);
 
@@ -118,14 +197,12 @@ function formatMemory(memory: MemoryData, indent: number): string[] {
     lines.push(`${ind}  </invalidates>`);
   }
 
-  // Provenance section
+  // Provenance reference (self-closing tag with note_id)
   if (memory.extractedFrom) {
-    const { noteContent, noteTimestamp } = memory.extractedFrom;
-    const noteDate = formatDate(noteTimestamp);
-
-    lines.push(`${ind}  <extracted_from timestamp="${noteDate}">`);
-    lines.push(`${ind}    <content>${noteContent}</content>`);
-    lines.push(`${ind}  </extracted_from>`);
+    const note = notesMap.get(memory.extractedFrom.noteId);
+    if (note) {
+      lines.push(`${ind}  <extracted_from note_id="${note.id}"/>`);
+    }
   }
 
   lines.push(`${ind}</memory>`);

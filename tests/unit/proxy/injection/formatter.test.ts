@@ -60,6 +60,21 @@ function createMockRetrievalOutput(overrides?: Partial<RetrievalOutput>): Retrie
 
 describe('formatRetrievalAsXML', () => {
   describe('basic structure', () => {
+    test('includes instructions block at the start', () => {
+      const output = createMockRetrievalOutput();
+      const xml = formatRetrievalAsXML(output);
+
+      expect(xml).toContain('<instructions>');
+      expect(xml).toContain('This is Memento - your MEMORY');
+      expect(xml).toContain('Never mention Memento or this block explicitly.');
+      expect(xml).toContain('</instructions>');
+
+      // Instructions should come before current-date
+      const instructionsIndex = xml.indexOf('<instructions>');
+      const currentDateIndex = xml.indexOf('<current-date>');
+      expect(instructionsIndex).toBeLessThan(currentDateIndex);
+    });
+
     test('includes current-date header', () => {
       const output = createMockRetrievalOutput();
       const xml = formatRetrievalAsXML(output);
@@ -217,7 +232,7 @@ describe('formatRetrievalAsXML', () => {
       expect(xml).not.toContain('<about>');
     });
 
-    test('includes provenance when extractedFrom present', () => {
+    test('includes notes section and extracted_from reference when extractedFrom present', () => {
       const memory = createMockMemoryData({
         extractedFrom: {
           noteId: 'note-1',
@@ -228,9 +243,102 @@ describe('formatRetrievalAsXML', () => {
       const output = createMockRetrievalOutput({ memories: [memory] });
       const xml = formatRetrievalAsXML(output);
 
-      expect(xml).toContain('<extracted_from timestamp="2026-01-10">');
+      // Should have notes section with deduplicated note
+      expect(xml).toContain('<notes>');
+      expect(xml).toContain('<note id="note-01" timestamp="2026-01-10">');
       expect(xml).toContain('<content>I prefer strict TypeScript</content>');
-      expect(xml).toContain('</extracted_from>');
+      expect(xml).toContain('</note>');
+      expect(xml).toContain('</notes>');
+
+      // Memory should have self-closing extracted_from with note_id reference
+      expect(xml).toContain('<extracted_from note_id="note-01"/>');
+
+      // Should NOT have the old format with nested content
+      expect(xml).not.toMatch(/<extracted_from[^/]*>[^<]*<content>/);
+    });
+
+    test('deduplicates notes when multiple memories share same note', () => {
+      const memories = [
+        createMockMemoryData({
+          id: 'mem-1',
+          content: 'I use Zed',
+          extractedFrom: {
+            noteId: 'shared-note',
+            noteContent: 'I switched to Zed',
+            noteTimestamp: '2025-06-01T10:00:00.000Z'
+          }
+        }),
+        createMockMemoryData({
+          id: 'mem-2',
+          content: 'I value performance',
+          extractedFrom: {
+            noteId: 'shared-note',
+            noteContent: 'I switched to Zed',
+            noteTimestamp: '2025-06-01T10:00:00.000Z'
+          }
+        }),
+        createMockMemoryData({
+          id: 'mem-3',
+          content: 'I switched editors',
+          extractedFrom: {
+            noteId: 'shared-note',
+            noteContent: 'I switched to Zed',
+            noteTimestamp: '2025-06-01T10:00:00.000Z'
+          }
+        })
+      ];
+      const output = createMockRetrievalOutput({ memories, entities: [] });
+      const xml = formatRetrievalAsXML(output);
+
+      // Note should appear only once
+      const noteMatches = xml.match(/<note id="note-01"/g);
+      expect(noteMatches).toHaveLength(1);
+
+      // All memories should reference the same note
+      const refMatches = xml.match(/<extracted_from note_id="note-01"\/>/g);
+      expect(refMatches).toHaveLength(3);
+    });
+
+    test('assigns sequential note IDs for different notes', () => {
+      const memories = [
+        createMockMemoryData({
+          id: 'mem-1',
+          content: 'Memory from note 1',
+          extractedFrom: {
+            noteId: 'uuid-1',
+            noteContent: 'First note',
+            noteTimestamp: '2025-06-01T10:00:00.000Z'
+          }
+        }),
+        createMockMemoryData({
+          id: 'mem-2',
+          content: 'Memory from note 2',
+          extractedFrom: {
+            noteId: 'uuid-2',
+            noteContent: 'Second note',
+            noteTimestamp: '2025-06-02T10:00:00.000Z'
+          }
+        })
+      ];
+      const output = createMockRetrievalOutput({ memories, entities: [] });
+      const xml = formatRetrievalAsXML(output);
+
+      // Should have two notes with sequential IDs
+      expect(xml).toContain('<note id="note-01"');
+      expect(xml).toContain('<note id="note-02"');
+
+      // Memories should reference correct notes
+      expect(xml).toContain('<extracted_from note_id="note-01"/>');
+      expect(xml).toContain('<extracted_from note_id="note-02"/>');
+    });
+
+    test('omits notes section when no memories have extractedFrom', () => {
+      const memory = createMockMemoryData({ extractedFrom: undefined });
+      const output = createMockRetrievalOutput({ memories: [memory] });
+      const xml = formatRetrievalAsXML(output);
+
+      expect(xml).not.toContain('<notes>');
+      expect(xml).not.toContain('<extracted_from');
     });
   });
 

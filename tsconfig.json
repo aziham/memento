@@ -25,6 +25,6 @@
       "@tests/*": ["./tests/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "lab"],
   "exclude": ["node_modules"]
 }
